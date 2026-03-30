@@ -1,0 +1,20 @@
+{
+  "name": "Task Linker",
+  "description": "Link cards as dependencies so your team can track blockers and related work.",
+  "capabilities": [
+    "card-badges",
+    "card-detail-badges",
+    "card-buttons",
+    "card-back-section",
+    "board-buttons",
+    "on-enable"
+  ],
+  "connectors": {
+    "iframe": {
+      "url": "{plugin}/connector.js"
+    }
+  },
+  "icon": {
+    "url": "{plugin}/icons/link.svg"
+  }
+}

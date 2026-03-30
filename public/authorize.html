@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Task Linker – Authorize</title>
+    <script src="https://p.trellocdn.com/power-up.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "DM Sans", sans-serif;
+        background: #2d2d2d;
+        color: #e8e8e8;
+        min-height: 100vh;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 0;
+      }
+
+      .popup {
+        background: #2d2d2d;
+        width: 100%;
+        padding: 28px 24px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+
+      .intro-text {
+        font-size: 14px;
+        line-height: 1.6;
+        color: #d4d4d4;
+        text-align: center;
+        margin-bottom: 18px;
+      }
+
+      .intro-text strong {
+        color: #fff;
+      }
+
+      .divider {
+        border: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        margin: 0 0 18px;
+      }
+
+      .info-text {
+        font-size: 13px;
+        line-height: 1.65;
+        color: #b8b8b8;
+        text-align: center;
+        margin-bottom: 18px;
+      }
+
+      .info-text a {
+        color: #a0bfff;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .newsletter-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 22px;
+      }
+
+      .newsletter-row input[type="checkbox"] {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 4px;
+        background: #3a8a6e;
+        border: none;
+        cursor: pointer;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+
+      .newsletter-row input[type="checkbox"]:checked::after {
+        content: "";
+        position: absolute;
+        left: 4px;
+        top: 2px;
+        width: 6px;
+        height: 10px;
+        border: 2px solid #fff;
+        border-top: none;
+        border-left: none;
+        transform: rotate(45deg);
+      }
+
+      .newsletter-row label {
+        font-size: 13px;
+        color: #c8c8c8;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .btn-authorize {
+        display: block;
+        width: 100%;
+        padding: 11px 0;
+        background: #3a3f4a;
+        color: #e0e0e0;
+        font-family: "DM Sans", sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition:
+          background 0.18s,
+          color 0.18s,
+          transform 0.1s;
+        margin-bottom: 22px;
+        letter-spacing: 0.01em;
+      }
+
+      .btn-authorize:hover {
+        background: #4a5263;
+        color: #fff;
+      }
+
+      .btn-authorize:active {
+        transform: scale(0.98);
+      }
+
+      .footer-links {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        flex-wrap: wrap;
+      }
+
+      .footer-links a {
+        font-size: 13px;
+        color: #8fa0c0;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        transition: color 0.15s;
+      }
+
+      .footer-links a:hover {
+        color: #a0bfff;
+      }
+
+      .footer-links .dot {
+        color: #555;
+        font-size: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="popup">
+      <p class="intro-text">
+        This Power-Up needs access to your boards.<br />
+        <strong>Everyone in your team must perform this step.</strong>
+      </p>
+
+      <hr class="divider" />
+
+      <p class="info-text">
+        This is a stand-alone Power-Up, which stores<br />
+        the card relationship within the Trello itself.<br />
+        See the
+        <a href="https://your-app.vercel.app/faq" target="_blank">FAQ</a> for
+        more information.
+      </p>
+
+      <div class="newsletter-row">
+        <input type="checkbox" id="newsletter" checked />
+        <label for="newsletter">Subscribe to our newsletter</label>
+      </div>
+
+      <button class="btn-authorize" id="authorizeBtn">
+        Click to authorize
+      </button>
+
+      <div class="footer-links">
+        <a href="https://your-app.vercel.app/faq" target="_blank">FAQ</a>
+        <span class="dot">•</span>
+        <a href="https://your-app.vercel.app/learn-more" target="_blank"
+          >Learn more</a
+        >
+        <span class="dot">•</span>
+        <a href="https://your-app.vercel.app/privacy" target="_blank"
+          >Privacy policy</a
+        >
+      </div>
+    </div>
+
+    <script>
+      var t = TrelloPowerUp.iframe();
+
+      document
+        .getElementById("authorizeBtn")
+        .addEventListener("click", function () {
+          // Open the Trello OAuth authorize URL in a popup window
+          var authUrl =
+            "https://trello.com/1/authorize" +
+            "?name=" +
+            encodeURIComponent("Task Linker") +
+            "&key=" +
+            encodeURIComponent(
+              window.TRELLO_API_KEY || "cd814b7c7f01e5029860d3eed20daae5",
+            ) +
+            "&expiration=never" +
+            "&response_type=token" +
+            "&scope=read,write" +
+            "&callback_method=fragment" +
+            "&return_url=" +
+            encodeURIComponent(
+              "https://task-linker-trello.vercel.app/auth-callback.html",
+            );
+
+          var popup = window.open(
+            authUrl,
+            "trello-auth",
+            "width=560,height=600,left=200,top=100",
+          );
+
+          // Listen for the token coming back via postMessage
+          window.addEventListener("message", function onMsg(e) {
+            if (e.data && e.data.type === "task-linker-token") {
+              window.removeEventListener("message", onMsg);
+              t.set("member", "private", "task-linker-auth", e.data.token).then(
+                function () {
+                  t.closePopup();
+                },
+              );
+            }
+          });
+        });
+    </script>
+  </body>
+</html>

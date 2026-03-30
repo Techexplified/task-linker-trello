@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Task Linker – Dependencies</title>
+    <script src="https://p.trellocdn.com/power-up.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "DM Sans", sans-serif;
+        background: #2d2d2d;
+        color: #e8e8e8;
+        padding: 20px 20px 24px;
+      }
+
+      h3 {
+        font-size: 13px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #888;
+        margin-bottom: 14px;
+      }
+
+      .dep-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .dep-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #383838;
+        border-radius: 6px;
+        padding: 9px 12px;
+        font-size: 13px;
+        color: #d0d0d0;
+      }
+
+      .dep-item button {
+        background: none;
+        border: none;
+        color: #888;
+        cursor: pointer;
+        font-size: 16px;
+        line-height: 1;
+        padding: 0 2px;
+        transition: color 0.15s;
+      }
+      .dep-item button:hover {
+        color: #f66;
+      }
+
+      .empty {
+        font-size: 13px;
+        color: #666;
+        text-align: center;
+        padding: 10px 0 16px;
+      }
+
+      .search-label {
+        font-size: 12px;
+        color: #888;
+        margin-bottom: 6px;
+        display: block;
+      }
+
+      .search-box {
+        width: 100%;
+        padding: 9px 12px;
+        background: #1e1e1e;
+        border: 1px solid #444;
+        border-radius: 6px;
+        color: #e0e0e0;
+        font-family: "DM Sans", sans-serif;
+        font-size: 13px;
+        outline: none;
+        margin-bottom: 10px;
+        transition: border-color 0.15s;
+      }
+      .search-box:focus {
+        border-color: #6b8cff;
+      }
+
+      .results-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        max-height: 150px;
+        overflow-y: auto;
+      }
+
+      .result-item {
+        padding: 8px 10px;
+        background: #383838;
+        border-radius: 5px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: background 0.15s;
+        color: #d0d0d0;
+      }
+      .result-item:hover {
+        background: #444;
+      }
+
+      .btn-add {
+        display: block;
+        width: 100%;
+        margin-top: 14px;
+        padding: 10px 0;
+        background: #3a8a6e;
+        color: #fff;
+        font-family: "DM Sans", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        border: none;
+        border-radius: 7px;
+        cursor: pointer;
+        letter-spacing: 0.02em;
+        transition:
+          background 0.18s,
+          transform 0.1s;
+      }
+      .btn-add:hover {
+        background: #2e7059;
+      }
+      .btn-add:active {
+        transform: scale(0.98);
+      }
+
+      .loading {
+        color: #666;
+        font-size: 13px;
+        text-align: center;
+        padding: 10px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>Linked Dependencies</h3>
+    <ul class="dep-list" id="depList">
+      <li class="loading">Loading…</li>
+    </ul>
+
+    <span class="search-label">Link another card</span>
+    <input
+      class="search-box"
+      id="searchBox"
+      type="text"
+      placeholder="Search cards on this board…"
+    />
+    <ul class="results-list" id="resultsList"></ul>
+
+    <script>
+      var t = TrelloPowerUp.iframe();
+      var currentCard = null;
+      var allCards = [];
+      var dependencies = [];
+
+      function renderDeps() {
+        var list = document.getElementById("depList");
+        if (dependencies.length === 0) {
+          list.innerHTML = '<li class="empty">No dependencies set.</li>';
+          return;
+        }
+        list.innerHTML = "";
+        dependencies.forEach(function (dep, idx) {
+          var li = document.createElement("li");
+          li.className = "dep-item";
+          li.innerHTML =
+            "<span>" +
+            escHtml(dep.name) +
+            "</span>" +
+            '<button data-idx="' +
+            idx +
+            '" title="Remove">✕</button>';
+          list.appendChild(li);
+        });
+        list.querySelectorAll("button").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var i = parseInt(btn.getAttribute("data-idx"));
+            dependencies.splice(i, 1);
+            saveDeps();
+          });
+        });
+      }
+
+      function saveDeps() {
+        t.set("card", "shared", "dependencies", dependencies).then(renderDeps);
+      }
+
+      function escHtml(s) {
+        return s
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      // Load existing dependencies
+      t.card("id", "name")
+        .then(function (card) {
+          currentCard = card;
+          return t.get("card", "shared", "dependencies");
+        })
+        .then(function (deps) {
+          dependencies = deps || [];
+          renderDeps();
+        });
+
+      // Load board cards for search
+      t.cards("id", "name").then(function (cards) {
+        allCards = cards;
+      });
+
+      // Search
+      document
+        .getElementById("searchBox")
+        .addEventListener("input", function () {
+          var q = this.value.toLowerCase().trim();
+          var list = document.getElementById("resultsList");
+          list.innerHTML = "";
+          if (!q) return;
+          var matches = allCards
+            .filter(function (c) {
+              return (
+                c.name.toLowerCase().includes(q) &&
+                c.id !== (currentCard && currentCard.id) &&
+                !dependencies.find(function (d) {
+                  return d.id === c.id;
+                })
+              );
+            })
+            .slice(0, 6);
+          matches.forEach(function (c) {
+            var li = document.createElement("li");
+            li.className = "result-item";
+            li.textContent = c.name;
+            li.addEventListener("click", function () {
+              dependencies.push({ id: c.id, name: c.name });
+              document.getElementById("searchBox").value = "";
+              list.innerHTML = "";
+              saveDeps();
+            });
+            list.appendChild(li);
+          });
+        });
+    </script>
+  </body>
+</html>

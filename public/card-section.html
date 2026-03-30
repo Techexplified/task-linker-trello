@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Task Linker</title>
+    <script src="https://p.trellocdn.com/power-up.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "DM Sans", sans-serif;
+        background: transparent;
+        padding: 8px 0 4px;
+      }
+      .btn-set {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 7px 14px;
+        background: #3a8a6e;
+        color: #fff;
+        font-family: "DM Sans", sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition:
+          background 0.18s,
+          transform 0.1s;
+      }
+      .btn-set:hover {
+        background: #2e7059;
+      }
+      .btn-set:active {
+        transform: scale(0.97);
+      }
+      .btn-set svg {
+        width: 14px;
+        height: 14px;
+        fill: none;
+        stroke: #fff;
+        stroke-width: 2;
+        stroke-linecap: round;
+      }
+    </style>
+  </head>
+  <body>
+    <button class="btn-set" id="setBtn">
+      <svg viewBox="0 0 24 24">
+        <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+      </svg>
+      Set dependency
+    </button>
+
+    <script>
+      var t = TrelloPowerUp.iframe();
+      document.getElementById("setBtn").addEventListener("click", function () {
+        t.popup({
+          title: "Task Linker",
+          url: "./dependency.html",
+          height: 380,
+        });
+      });
+    </script>
+  </body>
+</html>
