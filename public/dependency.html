@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Task Linker – Dependencies</title>
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap"
       rel="stylesheet"
@@ -23,23 +22,24 @@
         font-family: "DM Sans", sans-serif;
         background: #2d2d2d;
         color: #e8e8e8;
-        padding: 20px 20px 24px;
+        padding: 16px 20px 20px;
       }
 
-      h3 {
-        font-size: 13px;
+      .section-title {
+        font-size: 11px;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: #888;
-        margin-bottom: 14px;
+        color: #777;
+        margin-bottom: 10px;
       }
 
+      /* Existing dependencies list */
       .dep-list {
         list-style: none;
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
         margin-bottom: 16px;
       }
 
@@ -49,19 +49,42 @@
         justify-content: space-between;
         background: #383838;
         border-radius: 6px;
-        padding: 9px 12px;
+        padding: 8px 10px;
         font-size: 13px;
         color: #d0d0d0;
+        gap: 8px;
+      }
+
+      .dep-item .dep-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .dep-item .dep-name {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 13px;
+        color: #d8d8d8;
+      }
+
+      .dep-item .dep-type {
+        font-size: 11px;
+        color: #888;
       }
 
       .dep-item button {
         background: none;
         border: none;
-        color: #888;
+        color: #666;
         cursor: pointer;
-        font-size: 16px;
+        font-size: 15px;
         line-height: 1;
-        padding: 0 2px;
+        padding: 2px 4px;
+        flex-shrink: 0;
         transition: color 0.15s;
       }
       .dep-item button:hover {
@@ -70,18 +93,54 @@
 
       .empty {
         font-size: 13px;
-        color: #666;
-        text-align: center;
-        padding: 10px 0 16px;
+        color: #555;
+        padding: 4px 0 14px;
       }
 
-      .search-label {
-        font-size: 12px;
-        color: #888;
+      .divider {
+        border: none;
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
+        margin: 4px 0 16px;
+      }
+
+      /* Relationship type select */
+      .field-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: #777;
         margin-bottom: 6px;
         display: block;
       }
 
+      .rel-select {
+        width: 100%;
+        padding: 9px 12px;
+        background: #1e1e1e;
+        border: 1px solid #444;
+        border-radius: 6px;
+        color: #e0e0e0;
+        font-family: "DM Sans", sans-serif;
+        font-size: 13px;
+        outline: none;
+        margin-bottom: 12px;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        cursor: pointer;
+        transition: border-color 0.15s;
+      }
+      .rel-select:focus {
+        border-color: #6b8cff;
+      }
+      .rel-select option {
+        background: #1e1e1e;
+      }
+
+      /* Card search */
       .search-box {
         width: 100%;
         padding: 9px 12px;
@@ -92,19 +151,22 @@
         font-family: "DM Sans", sans-serif;
         font-size: 13px;
         outline: none;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
         transition: border-color 0.15s;
       }
       .search-box:focus {
         border-color: #6b8cff;
+      }
+      .search-box::placeholder {
+        color: #555;
       }
 
       .results-list {
         list-style: none;
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        max-height: 150px;
+        gap: 3px;
+        max-height: 130px;
         overflow-y: auto;
       }
 
@@ -116,56 +178,49 @@
         cursor: pointer;
         transition: background 0.15s;
         color: #d0d0d0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .result-item:hover {
-        background: #444;
+        background: #464646;
       }
 
-      .btn-add {
-        display: block;
-        width: 100%;
-        margin-top: 14px;
-        padding: 10px 0;
-        background: #3a8a6e;
-        color: #fff;
-        font-family: "DM Sans", sans-serif;
-        font-size: 13px;
-        font-weight: 600;
-        border: none;
-        border-radius: 7px;
-        cursor: pointer;
-        letter-spacing: 0.02em;
-        transition:
-          background 0.18s,
-          transform 0.1s;
-      }
-      .btn-add:hover {
-        background: #2e7059;
-      }
-      .btn-add:active {
-        transform: scale(0.98);
-      }
-
-      .loading {
-        color: #666;
-        font-size: 13px;
-        text-align: center;
-        padding: 10px 0;
+      .no-results {
+        font-size: 12px;
+        color: #555;
+        padding: 6px 2px;
       }
     </style>
   </head>
   <body>
-    <h3>Linked Dependencies</h3>
+    <!-- Existing dependencies -->
+    <p class="section-title">Current Dependencies</p>
     <ul class="dep-list" id="depList">
-      <li class="loading">Loading…</li>
+      <li class="empty">Loading…</li>
     </ul>
 
-    <span class="search-label">Link another card</span>
+    <hr class="divider" />
+
+    <!-- Add new dependency -->
+    <p class="section-title">Add Dependency</p>
+
+    <label class="field-label" for="relSelect">Relationship type</label>
+    <select class="rel-select" id="relSelect">
+      <option value="blocks">Blocks</option>
+      <option value="is-blocked-by" selected>Is blocked by</option>
+      <option value="is-related-to">Is related to</option>
+      <option value="is-duplicate-to">Is duplicate to</option>
+      <option value="is-child-to">Is child to</option>
+      <option value="is-parent-to">Is parent to</option>
+    </select>
+
+    <label class="field-label" for="searchBox">Search card</label>
     <input
       class="search-box"
       id="searchBox"
       type="text"
-      placeholder="Search cards on this board…"
+      placeholder="Type to search cards on this board…"
     />
     <ul class="results-list" id="resultsList"></ul>
 
@@ -175,9 +230,25 @@
       var allCards = [];
       var dependencies = [];
 
+      var REL_LABELS = {
+        blocks: "Blocks",
+        "is-blocked-by": "Is blocked by",
+        "is-related-to": "Is related to",
+        "is-duplicate-to": "Is duplicate to",
+        "is-child-to": "Is child to",
+        "is-parent-to": "Is parent to",
+      };
+
+      function escHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
       function renderDeps() {
         var list = document.getElementById("depList");
-        if (dependencies.length === 0) {
+        if (!dependencies || dependencies.length === 0) {
           list.innerHTML = '<li class="empty">No dependencies set.</li>';
           return;
         }
@@ -186,9 +257,14 @@
           var li = document.createElement("li");
           li.className = "dep-item";
           li.innerHTML =
-            "<span>" +
+            '<div class="dep-info">' +
+            '<span class="dep-name">' +
             escHtml(dep.name) +
             "</span>" +
+            '<span class="dep-type">' +
+            escHtml(REL_LABELS[dep.rel] || dep.rel) +
+            "</span>" +
+            "</div>" +
             '<button data-idx="' +
             idx +
             '" title="Remove">✕</button>';
@@ -207,13 +283,6 @@
         t.set("card", "shared", "dependencies", dependencies).then(renderDeps);
       }
 
-      function escHtml(s) {
-        return s
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
-      }
-
       // Load existing dependencies
       t.card("id", "name")
         .then(function (card) {
@@ -225,12 +294,12 @@
           renderDeps();
         });
 
-      // Load board cards for search
+      // Load all board cards for search
       t.cards("id", "name").then(function (cards) {
         allCards = cards;
       });
 
-      // Search
+      // Live search
       document
         .getElementById("searchBox")
         .addEventListener("input", function () {
@@ -238,6 +307,7 @@
           var list = document.getElementById("resultsList");
           list.innerHTML = "";
           if (!q) return;
+
           var matches = allCards
             .filter(function (c) {
               return (
@@ -248,13 +318,20 @@
                 })
               );
             })
-            .slice(0, 6);
+            .slice(0, 7);
+
+          if (matches.length === 0) {
+            list.innerHTML = '<li class="no-results">No cards found.</li>';
+            return;
+          }
+
           matches.forEach(function (c) {
             var li = document.createElement("li");
             li.className = "result-item";
             li.textContent = c.name;
             li.addEventListener("click", function () {
-              dependencies.push({ id: c.id, name: c.name });
+              var rel = document.getElementById("relSelect").value;
+              dependencies.push({ id: c.id, name: c.name, rel: rel });
               document.getElementById("searchBox").value = "";
               list.innerHTML = "";
               saveDeps();

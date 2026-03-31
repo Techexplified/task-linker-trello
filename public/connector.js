@@ -27,41 +27,55 @@ TrelloPowerUp.initialize({
     });
   },
 
-  /* ── Card Detail Badges (inside card back) ── */
-  "card-detail-badges": function (t, options) {
+  /* ── Card Back Section (replaces the "None" badge — shows Set dependency button) ── */
+  "card-back-section": function (t, options) {
     return isAuthorized(t).then(function (authorized) {
       if (!authorized) {
-        return [
-          {
-            title: "Task Linker",
-            text: "Authorize to use",
-            callback: function (t) {
+        return {
+          title: "Dependencies",
+          icon: window.location.origin + "/icons/link.svg",
+          content: {
+            type: "iframe",
+            url: t.signUrl("./authorize.html"),
+            height: 50,
+          },
+        };
+      }
+      return {
+        title: "Dependencies",
+        icon: window.location.origin + "/icons/link.svg",
+        content: {
+          type: "iframe",
+          url: t.signUrl("./card-section.html"),
+          height: 60,
+        },
+      };
+    });
+  },
+
+  /* ── Card Buttons (Power-Ups section in card back) ── */
+  "card-buttons": function (t, options) {
+    return isAuthorized(t).then(function (authorized) {
+      return [
+        {
+          icon: window.location.origin + "/icons/link.svg",
+          text: "Task Linker",
+          callback: function (t) {
+            if (!authorized) {
               return t.popup({
                 title: "Task Linker",
                 url: "./authorize.html",
                 height: 320,
               });
-            },
+            }
+            return t.popup({
+              title: "Task Linker",
+              url: "./dependency.html",
+              height: 420,
+            });
           },
-        ];
-      }
-      return t.get("card", "shared", "dependencies").then(function (deps) {
-        var count = deps && deps.length ? deps.length : 0;
-        return [
-          {
-            title: "Dependencies",
-            text: count > 0 ? count + " linked" : "None",
-            color: count > 0 ? "green" : null,
-            callback: function (t) {
-              return t.popup({
-                title: "Task Linker",
-                url: "./dependency.html",
-                height: 380,
-              });
-            },
-          },
-        ];
-      });
+        },
+      ];
     });
   },
 
@@ -80,48 +94,6 @@ TrelloPowerUp.initialize({
         },
       },
     ];
-  },
-
-  /* ── Card Buttons (Power-Ups section in card back) ── */
-  "card-buttons": function (t, options) {
-    return isAuthorized(t).then(function (authorized) {
-      return [
-        {
-          icon: window.location.origin + "/icons/link.svg",
-          text: "Dependencies",
-          callback: function (t) {
-            if (!authorized) {
-              return t.popup({
-                title: "Task Linker",
-                url: "./authorize.html",
-                height: 320,
-              });
-            }
-            return t.popup({
-              title: "Task Linker",
-              url: "./dependency.html",
-              height: 380,
-            });
-          },
-        },
-      ];
-    });
-  },
-
-  /* ── Card Section (the "Set dependency" section inside card back ) ── */
-  "card-back-section": function (t, options) {
-    return isAuthorized(t).then(function (authorized) {
-      if (!authorized) return null;
-      return {
-        title: "Dependencies",
-        icon: window.location.origin + "/icons/link.svg",
-        content: {
-          type: "iframe",
-          url: t.signUrl("./card-section.html"),
-          height: 100,
-        },
-      };
-    });
   },
 
   "on-enable": function (t, options) {
