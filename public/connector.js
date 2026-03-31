@@ -28,7 +28,7 @@ TrelloPowerUp.initialize({
   },
 
   /* ── Card Back Section (replaces the "None" badge — shows Set dependency button) ── */
-  "card-detail-badges": function (t, options) {
+  "card-back-section": function (t, options) {
     return isAuthorized(t).then(function (authorized) {
       if (!authorized) {
         return {
