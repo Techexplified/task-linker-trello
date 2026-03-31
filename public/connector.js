@@ -108,7 +108,7 @@ TrelloPowerUp.initialize({
     });
   },
 
-  /* ── Card Section (the "Set dependency" section inside card back) ── */
+  /* ── Card Section (the "Set dependency" section inside card back ) ── */
   "card-back-section": function (t, options) {
     return isAuthorized(t).then(function (authorized) {
       if (!authorized) return null;
