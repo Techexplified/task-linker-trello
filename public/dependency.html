@@ -34,7 +34,6 @@
         margin-bottom: 10px;
       }
 
-      /* Existing dependencies list */
       .dep-list {
         list-style: none;
         display: flex;
@@ -50,12 +49,10 @@
         background: #383838;
         border-radius: 6px;
         padding: 8px 10px;
-        font-size: 13px;
-        color: #d0d0d0;
         gap: 8px;
       }
 
-      .dep-item .dep-info {
+      .dep-info {
         display: flex;
         flex-direction: column;
         gap: 2px;
@@ -63,7 +60,7 @@
         min-width: 0;
       }
 
-      .dep-item .dep-name {
+      .dep-name {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -71,7 +68,7 @@
         color: #d8d8d8;
       }
 
-      .dep-item .dep-type {
+      .dep-type {
         font-size: 11px;
         color: #888;
       }
@@ -103,7 +100,6 @@
         margin: 4px 0 16px;
       }
 
-      /* Relationship type select */
       .field-label {
         font-size: 11px;
         font-weight: 600;
@@ -140,7 +136,6 @@
         background: #1e1e1e;
       }
 
-      /* Card search */
       .search-box {
         width: 100%;
         padding: 9px 12px;
@@ -191,10 +186,16 @@
         color: #555;
         padding: 6px 2px;
       }
+
+      .saving {
+        font-size: 12px;
+        color: #6b8cff;
+        padding: 6px 2px;
+        text-align: center;
+      }
     </style>
   </head>
   <body>
-    <!-- Existing dependencies -->
     <p class="section-title">Current Dependencies</p>
     <ul class="dep-list" id="depList">
       <li class="empty">Loading…</li>
@@ -202,7 +203,6 @@
 
     <hr class="divider" />
 
-    <!-- Add new dependency -->
     <p class="section-title">Add Dependency</p>
 
     <label class="field-label" for="relSelect">Relationship type</label>
@@ -230,6 +230,7 @@
       var allCards = [];
       var dependencies = [];
 
+      // Human-readable labels
       var REL_LABELS = {
         blocks: "Blocks",
         "is-blocked-by": "Is blocked by",
@@ -237,6 +238,16 @@
         "is-duplicate-to": "Is duplicate to",
         "is-child-to": "Is child to",
         "is-parent-to": "Is parent to",
+      };
+
+      // Inverse relationship map — what the OTHER card gets
+      var INVERSE = {
+        blocks: "is-blocked-by",
+        "is-blocked-by": "blocks",
+        "is-related-to": "is-related-to", // symmetric
+        "is-duplicate-to": "is-duplicate-to", // symmetric
+        "is-child-to": "is-parent-to",
+        "is-parent-to": "is-child-to",
       };
 
       function escHtml(s) {
@@ -270,24 +281,88 @@
             '" title="Remove">✕</button>';
           list.appendChild(li);
         });
+
         list.querySelectorAll("button").forEach(function (btn) {
           btn.addEventListener("click", function () {
             var i = parseInt(btn.getAttribute("data-idx"));
+            var removed = dependencies[i];
             dependencies.splice(i, 1);
-            saveDeps();
+
+            // Also remove the inverse entry from the other card
+            removeInverseFromCard(removed)
+              .then(function () {
+                return t.set("card", "shared", "dependencies", dependencies);
+              })
+              .then(renderDeps);
           });
         });
       }
 
-      function saveDeps() {
-        t.set("card", "shared", "dependencies", dependencies).then(renderDeps);
+      /**
+       * Read the other card's dependencies, remove the entry pointing back
+       * at currentCard, then write it back.
+       */
+      function removeInverseFromCard(removed) {
+        return t.getAll().then(function (allData) {
+          // We need to use t with a different card context — use REST via t.getRestApi() isn't
+          // available in all plans, so we store deps keyed by cardId in board shared storage.
+          return t
+            .get("board", "shared", "card-deps-" + removed.id)
+            .then(function (otherDeps) {
+              if (!otherDeps || otherDeps.length === 0) return;
+              var filtered = otherDeps.filter(function (d) {
+                return d.id !== currentCard.id;
+              });
+              return t.set(
+                "board",
+                "shared",
+                "card-deps-" + removed.id,
+                filtered,
+              );
+            });
+        });
       }
 
-      // Load existing dependencies
+      /**
+       * Save deps for the current card using board-scoped storage (keyed by card id),
+       * then also write the inverse entry into the other card's storage.
+       */
+      function saveDeps(newDep) {
+        var saves = [
+          t.set("board", "shared", "card-deps-" + currentCard.id, dependencies),
+        ];
+
+        if (newDep) {
+          // Read other card's existing deps, append inverse, write back
+          saves.push(
+            t
+              .get("board", "shared", "card-deps-" + newDep.id)
+              .then(function (otherDeps) {
+                var arr = otherDeps || [];
+                // Avoid duplicate
+                var alreadyLinked = arr.find(function (d) {
+                  return d.id === currentCard.id;
+                });
+                if (!alreadyLinked) {
+                  arr.push({
+                    id: currentCard.id,
+                    name: currentCard.name,
+                    rel: INVERSE[newDep.rel] || newDep.rel,
+                  });
+                }
+                return t.set("board", "shared", "card-deps-" + newDep.id, arr);
+              }),
+          );
+        }
+
+        return Promise.all(saves).then(renderDeps);
+      }
+
+      // Load current card + its dependencies from board-scoped storage
       t.card("id", "name")
         .then(function (card) {
           currentCard = card;
-          return t.get("card", "shared", "dependencies");
+          return t.get("board", "shared", "card-deps-" + card.id);
         })
         .then(function (deps) {
           dependencies = deps || [];
@@ -331,10 +406,11 @@
             li.textContent = c.name;
             li.addEventListener("click", function () {
               var rel = document.getElementById("relSelect").value;
-              dependencies.push({ id: c.id, name: c.name, rel: rel });
+              var newDep = { id: c.id, name: c.name, rel: rel };
+              dependencies.push(newDep);
               document.getElementById("searchBox").value = "";
               list.innerHTML = "";
-              saveDeps();
+              saveDeps(newDep);
             });
             list.appendChild(li);
           });

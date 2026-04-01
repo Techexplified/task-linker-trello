@@ -9,12 +9,23 @@ function isAuthorized(t) {
   });
 }
 
+function getCardDeps(t) {
+  return t
+    .card("id")
+    .then(function (card) {
+      return t.get("board", "shared", "card-deps-" + card.id);
+    })
+    .then(function (deps) {
+      return deps || [];
+    });
+}
+
 TrelloPowerUp.initialize({
-  /* ── Card Badges (small badge on card front) ── */
+  /* ── Card Badges (small green badge on card front) ── */
   "card-badges": function (t, options) {
     return isAuthorized(t).then(function (authorized) {
       if (!authorized) return [];
-      return t.get("card", "shared", "dependencies").then(function (deps) {
+      return getCardDeps(t).then(function (deps) {
         if (!deps || deps.length === 0) return [];
         return [
           {
@@ -27,7 +38,7 @@ TrelloPowerUp.initialize({
     });
   },
 
-  /* ── Card Back Section (replaces the "None" badge — shows Set dependency button) ── */
+  /* ── Card Back Section (Set dependency button inside card) ── */
   "card-back-section": function (t, options) {
     return isAuthorized(t).then(function (authorized) {
       if (!authorized) {
