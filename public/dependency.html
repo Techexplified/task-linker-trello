@@ -186,13 +186,6 @@
         color: #555;
         padding: 6px 2px;
       }
-
-      .saving {
-        font-size: 12px;
-        color: #6b8cff;
-        padding: 6px 2px;
-        text-align: center;
-      }
     </style>
   </head>
   <body>
@@ -230,7 +223,6 @@
       var allCards = [];
       var dependencies = [];
 
-      // Human-readable labels
       var REL_LABELS = {
         blocks: "Blocks",
         "is-blocked-by": "Is blocked by",
@@ -240,12 +232,11 @@
         "is-parent-to": "Is parent to",
       };
 
-      // Inverse relationship map — what the OTHER card gets
       var INVERSE = {
         blocks: "is-blocked-by",
         "is-blocked-by": "blocks",
-        "is-related-to": "is-related-to", // symmetric
-        "is-duplicate-to": "is-duplicate-to", // symmetric
+        "is-related-to": "is-related-to",
+        "is-duplicate-to": "is-duplicate-to",
         "is-child-to": "is-parent-to",
         "is-parent-to": "is-child-to",
       };
@@ -285,80 +276,68 @@
         list.querySelectorAll("button").forEach(function (btn) {
           btn.addEventListener("click", function () {
             var i = parseInt(btn.getAttribute("data-idx"));
-            var removed = dependencies[i];
-            dependencies.splice(i, 1);
-
-            // Also remove the inverse entry from the other card
-            removeInverseFromCard(removed)
-              .then(function () {
-                return t.set("card", "shared", "dependencies", dependencies);
-              })
-              .then(renderDeps);
+            removeDependency(i);
           });
         });
       }
 
-      /**
-       * Read the other card's dependencies, remove the entry pointing back
-       * at currentCard, then write it back.
-       */
-      function removeInverseFromCard(removed) {
-        return t.getAll().then(function (allData) {
-          // We need to use t with a different card context — use REST via t.getRestApi() isn't
-          // available in all plans, so we store deps keyed by cardId in board shared storage.
-          return t
-            .get("board", "shared", "card-deps-" + removed.id)
-            .then(function (otherDeps) {
-              if (!otherDeps || otherDeps.length === 0) return;
-              var filtered = otherDeps.filter(function (d) {
-                return d.id !== currentCard.id;
-              });
-              return t.set(
-                "board",
-                "shared",
-                "card-deps-" + removed.id,
-                filtered,
-              );
+      // ── Remove: update both cards atomically ──────────────────────────────
+      function removeDependency(idx) {
+        var removed = dependencies[idx];
+
+        // 1. Remove from current card's list
+        dependencies.splice(idx, 1);
+        var saveCurrentCard = t.set(
+          "board",
+          "shared",
+          "card-deps-" + currentCard.id,
+          dependencies,
+        );
+
+        // 2. Remove the inverse entry from the other card's list
+        var saveOtherCard = t
+          .get("board", "shared", "card-deps-" + removed.id)
+          .then(function (otherDeps) {
+            var arr = (otherDeps || []).filter(function (d) {
+              return d.id !== currentCard.id;
             });
-        });
+            return t.set("board", "shared", "card-deps-" + removed.id, arr);
+          });
+
+        Promise.all([saveCurrentCard, saveOtherCard]).then(renderDeps);
       }
 
-      /**
-       * Save deps for the current card using board-scoped storage (keyed by card id),
-       * then also write the inverse entry into the other card's storage.
-       */
-      function saveDeps(newDep) {
-        var saves = [
-          t.set("board", "shared", "card-deps-" + currentCard.id, dependencies),
-        ];
+      // ── Add: update both cards atomically ─────────────────────────────────
+      function addDependency(newDep) {
+        dependencies.push(newDep);
+        var saveCurrentCard = t.set(
+          "board",
+          "shared",
+          "card-deps-" + currentCard.id,
+          dependencies,
+        );
 
-        if (newDep) {
-          // Read other card's existing deps, append inverse, write back
-          saves.push(
-            t
-              .get("board", "shared", "card-deps-" + newDep.id)
-              .then(function (otherDeps) {
-                var arr = otherDeps || [];
-                // Avoid duplicate
-                var alreadyLinked = arr.find(function (d) {
-                  return d.id === currentCard.id;
-                });
-                if (!alreadyLinked) {
-                  arr.push({
-                    id: currentCard.id,
-                    name: currentCard.name,
-                    rel: INVERSE[newDep.rel] || newDep.rel,
-                  });
-                }
-                return t.set("board", "shared", "card-deps-" + newDep.id, arr);
-              }),
-          );
-        }
+        var saveOtherCard = t
+          .get("board", "shared", "card-deps-" + newDep.id)
+          .then(function (otherDeps) {
+            var arr = otherDeps || [];
+            var alreadyLinked = arr.some(function (d) {
+              return d.id === currentCard.id;
+            });
+            if (!alreadyLinked) {
+              arr.push({
+                id: currentCard.id,
+                name: currentCard.name,
+                rel: INVERSE[newDep.rel] || newDep.rel,
+              });
+            }
+            return t.set("board", "shared", "card-deps-" + newDep.id, arr);
+          });
 
-        return Promise.all(saves).then(renderDeps);
+        Promise.all([saveCurrentCard, saveOtherCard]).then(renderDeps);
       }
 
-      // Load current card + its dependencies from board-scoped storage
+      // ── Init ──────────────────────────────────────────────────────────────
       t.card("id", "name")
         .then(function (card) {
           currentCard = card;
@@ -369,12 +348,11 @@
           renderDeps();
         });
 
-      // Load all board cards for search
       t.cards("id", "name").then(function (cards) {
         allCards = cards;
       });
 
-      // Live search
+      // ── Search ────────────────────────────────────────────────────────────
       document
         .getElementById("searchBox")
         .addEventListener("input", function () {
@@ -388,7 +366,7 @@
               return (
                 c.name.toLowerCase().includes(q) &&
                 c.id !== (currentCard && currentCard.id) &&
-                !dependencies.find(function (d) {
+                !dependencies.some(function (d) {
                   return d.id === c.id;
                 })
               );
@@ -406,11 +384,9 @@
             li.textContent = c.name;
             li.addEventListener("click", function () {
               var rel = document.getElementById("relSelect").value;
-              var newDep = { id: c.id, name: c.name, rel: rel };
-              dependencies.push(newDep);
               document.getElementById("searchBox").value = "";
               list.innerHTML = "";
-              saveDeps(newDep);
+              addDependency({ id: c.id, name: c.name, rel: rel });
             });
             list.appendChild(li);
           });
