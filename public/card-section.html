@@ -65,11 +65,22 @@
 
     <script>
       var t = TrelloPowerUp.iframe();
+
       document.getElementById("setBtn").addEventListener("click", function () {
-        t.popup({
-          title: "Set Dependency",
-          url: "./dependency.html",
-          height: 420,
+        // Check auth at click time — open authorize or dependency popup accordingly
+        t.get("member", "private", "task-linker-auth").then(function (token) {
+          if (!token) {
+            return t.popup({
+              title: "Task Linker",
+              url: "./authorize.html",
+              height: 320,
+            });
+          }
+          return t.popup({
+            title: "Set Dependency",
+            url: "./dependency.html",
+            height: 420,
+          });
         });
       });
     </script>

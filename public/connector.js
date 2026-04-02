@@ -38,30 +38,22 @@ TrelloPowerUp.initialize({
     });
   },
 
-  /* ── Card Back Section (Set dependency button inside card) ── */
+  /* ── Card Back Section ──────────────────────────────────────────────────
+     Always renders the green "Set dependency" button.
+     Auth check happens inside card-section.html on click — so the button
+     always appears, and clicking it opens either the authorize popup or
+     the dependency popup depending on auth state.
+  ── */
   "card-back-section": function (t, options) {
-    return isAuthorized(t).then(function (authorized) {
-      if (!authorized) {
-        return {
-          title: "Dependencies",
-          icon: window.location.origin + "/icons/link.svg",
-          content: {
-            type: "iframe",
-            url: t.signUrl("./authorize.html"),
-            height: 50,
-          },
-        };
-      }
-      return {
-        title: "Dependencies",
-        icon: window.location.origin + "/icons/link.svg",
-        content: {
-          type: "iframe",
-          url: t.signUrl("./card-section.html"),
-          height: 60,
-        },
-      };
-    });
+    return {
+      title: "Dependencies",
+      icon: window.location.origin + "/icons/link.svg",
+      content: {
+        type: "iframe",
+        url: t.signUrl("./card-section.html"),
+        height: 60,
+      },
+    };
   },
 
   /* ── Card Buttons (Power-Ups section in card back) ── */
