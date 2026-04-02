@@ -189,23 +189,23 @@
     </style>
   </head>
   <body>
-    <p class="section-title">Current Dependencies</p>
+    <p class="section-title">Linked Cards</p>
     <ul class="dep-list" id="depList">
       <li class="empty">Loading…</li>
     </ul>
 
     <hr class="divider" />
 
-    <p class="section-title">Add Dependency</p>
+    <p class="section-title">Add Link</p>
 
-    <label class="field-label" for="relSelect">Relationship type</label>
+    <label class="field-label" for="relSelect">Link type</label>
     <select class="rel-select" id="relSelect">
       <option value="blocks">Blocks</option>
-      <option value="is-blocked-by" selected>Is blocked by</option>
-      <option value="is-related-to">Is related to</option>
-      <option value="is-duplicate-to">Is duplicate to</option>
-      <option value="is-child-to">Is child to</option>
-      <option value="is-parent-to">Is parent to</option>
+      <option value="is-blocked-by" selected>Blocked by</option>
+      <option value="is-related-to">Related to</option>
+      <!-- <option value="is-duplicate-to">Is duplicate to</option> -->
+      <option value="is-child-to">Child of</option>
+      <option value="is-parent-to">Parent to</option>
     </select>
 
     <label class="field-label" for="searchBox">Search card</label>
@@ -213,7 +213,7 @@
       class="search-box"
       id="searchBox"
       type="text"
-      placeholder="Type to search cards on this board…"
+      placeholder="Search cards to link..."
     />
     <ul class="results-list" id="resultsList"></ul>
 
