@@ -20,15 +20,6 @@ function getCardDeps(t) {
     });
 }
 
-/**
- * Health badge logic:
- * - Looks at all cards this card is "blocked-by"
- * - Checks which list each blocker is in
- * - If ALL blockers are in a "done-like" list → green  ✅ All clear
- * - If ANY blocker is in a "done-like" list → yellow  ⚠ Partially blocked
- * - If NO blocker is in a "done-like" list → red      🔴 Blocked
- * - "Done-like" list names (case-insensitive): done, complete, completed, finished, closed, released
- */
 var DONE_LISTS = [
   "done",
   "complete",
@@ -43,23 +34,19 @@ function isDoneList(listName) {
 }
 
 function getHealthBadge(t, deps) {
-  // Only care about "blocked-by" relationships for health
   var blockers = deps.filter(function (d) {
     return d.rel === "blocked-by" || d.rel === "is-blocked-by";
   });
 
   if (blockers.length === 0) {
-    // Has deps but none are blockers — show neutral info badge
-    return [
+    return Promise.resolve([
       {
         text: deps.length + " link" + (deps.length > 1 ? "s" : ""),
-        icon: window.location.origin + "/icons/link.svg",
-        color: "blue",
+        color: "none",
       },
-    ];
+    ]);
   }
 
-  // Fetch all board lists to check which are "done"
   return t.lists("id", "name").then(function (lists) {
     var doneListIds = lists
       .filter(function (l) {
@@ -69,7 +56,6 @@ function getHealthBadge(t, deps) {
         return l.id;
       });
 
-    // Fetch all board cards to find blocker list positions
     return t.cards("id", "idList").then(function (allCards) {
       var blockerCardMap = {};
       allCards.forEach(function (c) {
@@ -83,50 +69,42 @@ function getHealthBadge(t, deps) {
       }).length;
 
       if (resolvedCount === totalBlockers) {
-        // All blockers done
-        return [
-          {
-            text: "✓ All clear",
-            icon: window.location.origin + "/icons/link.svg",
-            color: "green",
-          },
-        ];
+        return [{ text: "✓ All clear", color: "green" }];
       } else if (resolvedCount > 0) {
-        // Some blockers done
         return [
           {
             text: resolvedCount + "/" + totalBlockers + " resolved",
-            icon: window.location.origin + "/icons/link.svg",
             color: "yellow",
           },
         ];
       } else {
-        // No blockers done
-        return [
-          {
-            text: "🔴 Blocked",
-            icon: window.location.origin + "/icons/link.svg",
-            color: "red",
-          },
-        ];
+        return [{ text: "🔴 Blocked", color: "red" }];
       }
     });
   });
 }
 
 TrelloPowerUp.initialize({
-  /* ── Card Badges (health-aware badge on card front) ── */
+  /* ── Card Badges (card FRONT on the board) ──────────────────────────────
+     Always blue — just shows the link count. Simple and unobtrusive.        */
   "card-badges": function (t, options) {
     return isAuthorized(t).then(function (authorized) {
       if (!authorized) return [];
       return getCardDeps(t).then(function (deps) {
         if (!deps || deps.length === 0) return [];
-        return getHealthBadge(t, deps);
+        return [
+          {
+            text: deps.length + " link" + (deps.length > 1 ? "s" : ""),
+            icon: window.location.origin + "/icons/link.svg",
+            color: "sky", // blue
+          },
+        ];
       });
     });
   },
 
-  /* ── Card Detail Badges (health badge inside card back header) ── */
+  /* ── Card Detail Badges (INSIDE the card, below the title) ─────────────
+     Shows the health status — Blocked / partially resolved / all clear.     */
   "card-detail-badges": function (t, options) {
     return isAuthorized(t).then(function (authorized) {
       if (!authorized) return [];
