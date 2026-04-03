@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Task Linker – Dependencies</title>
     <script src="https://p.trellocdn.com/power-up.min.js"></script>
+
     <link
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
+
     <style>
-      *,
-      *::before,
-      *::after {
+      * {
         box-sizing: border-box;
         margin: 0;
         padding: 0;
@@ -44,28 +44,19 @@
 
       .dep-item {
         display: flex;
-        align-items: center;
         justify-content: space-between;
         background: #383838;
         border-radius: 6px;
         padding: 8px 10px;
-        gap: 8px;
       }
 
       .dep-info {
         display: flex;
         flex-direction: column;
-        gap: 2px;
-        flex: 1;
-        min-width: 0;
       }
 
       .dep-name {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
         font-size: 13px;
-        color: #d8d8d8;
       }
 
       .dep-type {
@@ -78,316 +69,255 @@
         border: none;
         color: #666;
         cursor: pointer;
-        font-size: 15px;
-        line-height: 1;
-        padding: 2px 4px;
-        flex-shrink: 0;
-        transition: color 0.15s;
-      }
-      .dep-item button:hover {
-        color: #f66;
       }
 
       .empty {
         font-size: 13px;
         color: #555;
-        padding: 4px 0 14px;
       }
 
       .divider {
-        border: none;
         border-top: 1px solid rgba(255, 255, 255, 0.07);
-        margin: 4px 0 16px;
+        margin: 12px 0;
       }
 
       .field-label {
         font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-        color: #777;
         margin-bottom: 6px;
         display: block;
+        color: #777;
       }
 
-      .rel-select {
-        width: 100%;
-        padding: 9px 12px;
-        background: #1e1e1e;
-        border: 1px solid #444;
-        border-radius: 6px;
-        color: #e0e0e0;
-        font-family: "DM Sans", sans-serif;
-        font-size: 13px;
-        outline: none;
-        margin-bottom: 12px;
-        appearance: none;
-        -webkit-appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 12px center;
-        cursor: pointer;
-        transition: border-color 0.15s;
-      }
-      .rel-select:focus {
-        border-color: #6b8cff;
-      }
-      .rel-select option {
-        background: #1e1e1e;
-      }
-
+      .rel-select,
       .search-box {
         width: 100%;
-        padding: 9px 12px;
+        padding: 9px;
         background: #1e1e1e;
         border: 1px solid #444;
         border-radius: 6px;
-        color: #e0e0e0;
-        font-family: "DM Sans", sans-serif;
-        font-size: 13px;
-        outline: none;
-        margin-bottom: 8px;
-        transition: border-color 0.15s;
-      }
-      .search-box:focus {
-        border-color: #6b8cff;
-      }
-      .search-box::placeholder {
-        color: #555;
+        color: #fff;
+        margin-bottom: 10px;
       }
 
       .results-list {
-        list-style: none;
-        display: flex;
-        flex-direction: column;
-        gap: 3px;
-        max-height: 130px;
+        max-height: 150px;
         overflow-y: auto;
       }
 
       .result-item {
-        padding: 8px 10px;
+        padding: 8px;
         background: #383838;
         border-radius: 5px;
-        font-size: 13px;
+        margin-bottom: 4px;
         cursor: pointer;
-        transition: background 0.15s;
-        color: #d0d0d0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
       }
+
       .result-item:hover {
         background: #464646;
       }
 
-      .no-results {
-        font-size: 12px;
-        color: #555;
-        padding: 6px 2px;
+      .board-name {
+        font-size: 11px;
+        color: #888;
       }
     </style>
   </head>
+
   <body>
     <p class="section-title">Linked Cards</p>
-    <ul class="dep-list" id="depList">
-      <li class="empty">Loading…</li>
-    </ul>
+    <ul id="depList"></ul>
 
-    <hr class="divider" />
+    <div class="divider"></div>
 
     <p class="section-title">Add Link</p>
 
-    <label class="field-label" for="relSelect">Link type</label>
-    <select class="rel-select" id="relSelect">
+    <label class="field-label">Link Type</label>
+    <select id="relSelect" class="rel-select">
       <option value="blocks">Blocks</option>
-      <option value="is-blocked-by" selected>Blocked by</option>
-      <option value="is-related-to">Related to</option>
-      <!-- <option value="is-duplicate-to">Is duplicate to</option> -->
+      <option value="is-blocked-by">Blocked by</option>
+      <option value="is-related-to">Related</option>
       <option value="is-child-to">Child of</option>
-      <option value="is-parent-to">Parent to</option>
+      <option value="is-parent-to">Parent of</option>
     </select>
 
-    <label class="field-label" for="searchBox">Search card</label>
+    <label class="field-label">Search Cards</label>
     <input
-      class="search-box"
       id="searchBox"
-      type="text"
-      placeholder="Search cards to link..."
+      class="search-box"
+      placeholder="Search across boards..."
     />
-    <ul class="results-list" id="resultsList"></ul>
+    <ul id="resultsList" class="results-list"></ul>
 
     <script>
       var t = TrelloPowerUp.iframe();
-      var currentCard = null;
-      var allCards = [];
-      var dependencies = [];
+      const API_KEY = "cd814b7c7f01e5029860d3eed20daae5";
 
-      var REL_LABELS = {
+      var currentCard;
+      var dependencies = [];
+      var allCards = [];
+
+      const REL_LABELS = {
         blocks: "Blocks",
-        "is-blocked-by": "Is blocked by",
-        "is-related-to": "Is related to",
-        "is-duplicate-to": "Is duplicate to",
-        "is-child-to": "Is child to",
-        "is-parent-to": "Is parent to",
+        "is-blocked-by": "Blocked by",
+        "is-related-to": "Related",
+        "is-child-to": "Child of",
+        "is-parent-to": "Parent of",
       };
 
-      var INVERSE = {
+      const INVERSE = {
         blocks: "is-blocked-by",
         "is-blocked-by": "blocks",
         "is-related-to": "is-related-to",
-        "is-duplicate-to": "is-duplicate-to",
         "is-child-to": "is-parent-to",
         "is-parent-to": "is-child-to",
       };
 
-      function escHtml(s) {
-        return String(s)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
-      }
-
       function renderDeps() {
         var list = document.getElementById("depList");
-        if (!dependencies || dependencies.length === 0) {
+
+        if (!dependencies.length) {
           list.innerHTML = '<li class="empty">No links set.</li>';
           return;
         }
+
         list.innerHTML = "";
-        dependencies.forEach(function (dep, idx) {
+
+        dependencies.forEach((dep, idx) => {
           var li = document.createElement("li");
           li.className = "dep-item";
-          li.innerHTML =
-            '<div class="dep-info">' +
-            '<span class="dep-name">' +
-            escHtml(dep.name) +
-            "</span>" +
-            '<span class="dep-type">' +
-            escHtml(REL_LABELS[dep.rel] || dep.rel) +
-            "</span>" +
-            "</div>" +
-            '<button data-idx="' +
-            idx +
-            '" title="Remove">✕</button>';
+
+          li.innerHTML = `
+            <div class="dep-info">
+              <span>${dep.name}</span>
+              <span class="dep-type">${REL_LABELS[dep.rel]}</span>
+            </div>
+            <button data-idx="${idx}">✕</button>
+          `;
+
+          li.querySelector("button").onclick = () => removeDependency(idx);
+
           list.appendChild(li);
         });
-
-        list.querySelectorAll("button").forEach(function (btn) {
-          btn.addEventListener("click", function () {
-            var i = parseInt(btn.getAttribute("data-idx"));
-            removeDependency(i);
-          });
-        });
       }
 
-      // ── Remove: update both cards atomically ──────────────────────────────
       function removeDependency(idx) {
         var removed = dependencies[idx];
-
-        // 1. Remove from current card's list
         dependencies.splice(idx, 1);
-        var saveCurrentCard = t.set(
-          "board",
-          "shared",
-          "card-deps-" + currentCard.id,
-          dependencies,
-        );
 
-        // 2. Remove the inverse entry from the other card's list
-        var saveOtherCard = t
-          .get("board", "shared", "card-deps-" + removed.id)
-          .then(function (otherDeps) {
-            var arr = (otherDeps || []).filter(function (d) {
-              return d.id !== currentCard.id;
-            });
-            return t.set("board", "shared", "card-deps-" + removed.id, arr);
-          });
-
-        Promise.all([saveCurrentCard, saveOtherCard]).then(renderDeps);
+        Promise.all([
+          t.set("board", "shared", "card-deps-" + currentCard.id, dependencies),
+          t
+            .get("board", "shared", "card-deps-" + removed.id)
+            .then((arr) => (arr || []).filter((d) => d.id !== currentCard.id))
+            .then((arr) =>
+              t.set("board", "shared", "card-deps-" + removed.id, arr),
+            ),
+        ]).then(renderDeps);
       }
 
-      // ── Add: update both cards atomically ─────────────────────────────────
-      function addDependency(newDep) {
-        dependencies.push(newDep);
-        var saveCurrentCard = t.set(
-          "board",
-          "shared",
-          "card-deps-" + currentCard.id,
-          dependencies,
-        );
+      function addDependency(dep) {
+        dependencies.push(dep);
 
-        var saveOtherCard = t
-          .get("board", "shared", "card-deps-" + newDep.id)
-          .then(function (otherDeps) {
-            var arr = otherDeps || [];
-            var alreadyLinked = arr.some(function (d) {
-              return d.id === currentCard.id;
-            });
-            if (!alreadyLinked) {
+        Promise.all([
+          t.set("board", "shared", "card-deps-" + currentCard.id, dependencies),
+          t.get("board", "shared", "card-deps-" + dep.id).then((arr) => {
+            arr = arr || [];
+            if (!arr.some((d) => d.id === currentCard.id)) {
               arr.push({
                 id: currentCard.id,
                 name: currentCard.name,
-                rel: INVERSE[newDep.rel] || newDep.rel,
+                rel: INVERSE[dep.rel],
               });
             }
-            return t.set("board", "shared", "card-deps-" + newDep.id, arr);
-          });
-
-        Promise.all([saveCurrentCard, saveOtherCard]).then(renderDeps);
+            return t.set("board", "shared", "card-deps-" + dep.id, arr);
+          }),
+        ]).then(renderDeps);
       }
 
-      // ── Init ──────────────────────────────────────────────────────────────
+      // ✅ Fetch all boards + cards
+      function fetchAllCards(token) {
+        return fetch(
+          `https://api.trello.com/1/members/me/boards?key=${API_KEY}&token=${token}`,
+        )
+          .then((res) => res.json())
+          .then((boards) =>
+            Promise.all(
+              boards.map((board) =>
+                fetch(
+                  `https://api.trello.com/1/boards/${board.id}/cards?key=${API_KEY}&token=${token}`,
+                )
+                  .then((res) => res.json())
+                  .then((cards) =>
+                    cards.map((c) => ({
+                      id: c.id,
+                      name: c.name,
+                      board: board.name,
+                    })),
+                  ),
+              ),
+            ),
+          )
+          .then((results) => results.flat());
+      }
+
+      // Init
       t.card("id", "name")
-        .then(function (card) {
+        .then((card) => {
           currentCard = card;
           return t.get("board", "shared", "card-deps-" + card.id);
         })
-        .then(function (deps) {
+        .then((deps) => {
           dependencies = deps || [];
           renderDeps();
         });
 
-      t.cards("id", "name").then(function (cards) {
-        allCards = cards;
+      // Load cross-board cards
+      t.get("member", "private", "task-linker-auth").then((token) => {
+        if (!token) return;
+        fetchAllCards(token).then((cards) => {
+          allCards = cards;
+        });
       });
 
-      // ── Search ────────────────────────────────────────────────────────────
+      // Search
       document
         .getElementById("searchBox")
         .addEventListener("input", function () {
           var q = this.value.toLowerCase().trim();
           var list = document.getElementById("resultsList");
           list.innerHTML = "";
+
           if (!q) return;
 
           var matches = allCards
-            .filter(function (c) {
-              return (
+            .filter(
+              (c) =>
                 c.name.toLowerCase().includes(q) &&
-                c.id !== (currentCard && currentCard.id) &&
-                !dependencies.some(function (d) {
-                  return d.id === c.id;
-                })
-              );
-            })
-            .slice(0, 7);
+                c.id !== currentCard.id &&
+                !dependencies.some((d) => d.id === c.id),
+            )
+            .slice(0, 8);
 
-          if (matches.length === 0) {
-            list.innerHTML = '<li class="no-results">No cards found.</li>';
-            return;
-          }
-
-          matches.forEach(function (c) {
+          matches.forEach((c) => {
             var li = document.createElement("li");
             li.className = "result-item";
-            li.textContent = c.name;
-            li.addEventListener("click", function () {
-              var rel = document.getElementById("relSelect").value;
-              document.getElementById("searchBox").value = "";
+
+            li.innerHTML = `
+            ${c.name}
+            <div class="board-name">${c.board}</div>
+          `;
+
+            li.onclick = () => {
+              addDependency({
+                id: c.id,
+                name: c.name,
+                rel: document.getElementById("relSelect").value,
+              });
+
               list.innerHTML = "";
-              addDependency({ id: c.id, name: c.name, rel: rel });
-            });
+              document.getElementById("searchBox").value = "";
+            };
+
             list.appendChild(li);
           });
         });
