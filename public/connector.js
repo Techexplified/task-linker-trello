@@ -20,73 +20,8 @@ function getCardDeps(t) {
     });
 }
 
-var DONE_LISTS = [
-  "done",
-  "complete",
-  "completed",
-  "finished",
-  "closed",
-  "released",
-];
-
-function isDoneList(listName) {
-  return DONE_LISTS.indexOf((listName || "").toLowerCase().trim()) !== -1;
-}
-
-function getHealthBadge(t, deps) {
-  var blockers = deps.filter(function (d) {
-    return d.rel === "blocked-by" || d.rel === "is-blocked-by";
-  });
-
-  if (blockers.length === 0) {
-    return Promise.resolve([
-      {
-        text: deps.length + " link" + (deps.length > 1 ? "s" : ""),
-        color: "none",
-      },
-    ]);
-  }
-
-  return t.lists("id", "name").then(function (lists) {
-    var doneListIds = lists
-      .filter(function (l) {
-        return isDoneList(l.name);
-      })
-      .map(function (l) {
-        return l.id;
-      });
-
-    return t.cards("id", "idList").then(function (allCards) {
-      var blockerCardMap = {};
-      allCards.forEach(function (c) {
-        blockerCardMap[c.id] = c.idList;
-      });
-
-      var totalBlockers = blockers.length;
-      var resolvedCount = blockers.filter(function (b) {
-        var listId = blockerCardMap[b.id];
-        return listId && doneListIds.indexOf(listId) !== -1;
-      }).length;
-
-      if (resolvedCount === totalBlockers) {
-        return [{ text: "✓ All clear", color: "green" }];
-      } else if (resolvedCount > 0) {
-        return [
-          {
-            text: resolvedCount + "/" + totalBlockers + " resolved",
-            color: "yellow",
-          },
-        ];
-      } else {
-        return [{ text: "🔴 Blocked", color: "red" }];
-      }
-    });
-  });
-}
-
 TrelloPowerUp.initialize({
-  /* ── Card Badges (card FRONT on the board) ──────────────────────────────
-     Always blue — just shows the link count. Simple and unobtrusive.        */
+  /* ── Card Badges (small green badge on card front) ── */
   "card-badges": function (t, options) {
     return isAuthorized(t).then(function (authorized) {
       if (!authorized) return [];
@@ -96,29 +31,22 @@ TrelloPowerUp.initialize({
           {
             text: deps.length + " link" + (deps.length > 1 ? "s" : ""),
             icon: window.location.origin + "/icons/link.svg",
-            color: "sky", // blue
+            color: "green",
           },
         ];
       });
     });
   },
 
-  /* ── Card Detail Badges (INSIDE the card, below the title) ─────────────
-     Shows the health status — Blocked / partially resolved / all clear.     */
-  "card-detail-badges": function (t, options) {
-    return isAuthorized(t).then(function (authorized) {
-      if (!authorized) return [];
-      return getCardDeps(t).then(function (deps) {
-        if (!deps || deps.length === 0) return [];
-        return getHealthBadge(t, deps);
-      });
-    });
-  },
-
-  /* ── Card Back Section ── always shows Link Cards button ── */
+  /* ── Card Back Section ──────────────────────────────────────────────────
+     Always renders the green "Set dependency" button.
+     Auth check happens inside card-section.html on click — so the button
+     always appears, and clicking it opens either the authorize popup or
+     the dependency popup depending on auth state.
+  ── */
   "card-back-section": function (t, options) {
     return {
-      title: "Dependencies",
+      title: "Links",
       icon: window.location.origin + "/icons/link.svg",
       content: {
         type: "iframe",
@@ -128,7 +56,7 @@ TrelloPowerUp.initialize({
     };
   },
 
-  /* ── Card Buttons (Power-Ups section) ── */
+  /* ── Card Buttons (Power-Ups section in card back) ── */
   "card-buttons": function (t, options) {
     return isAuthorized(t).then(function (authorized) {
       return [
@@ -144,7 +72,7 @@ TrelloPowerUp.initialize({
               });
             }
             return t.popup({
-              title: "Link Cards",
+              title: "Task Linker",
               url: "./dependency.html",
               height: 420,
             });
