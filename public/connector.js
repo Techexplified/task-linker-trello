@@ -13,7 +13,8 @@ function getCardDeps(t) {
   return t
     .card("id")
     .then(function (card) {
-      return t.get("board", "shared", "card-deps-" + card.id);
+      // Change "board" to "card"
+      return t.get("card", "shared", "card-deps-" + card.id);
     })
     .then(function (deps) {
       return deps || [];

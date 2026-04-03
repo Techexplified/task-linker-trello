@@ -200,27 +200,34 @@
         });
       }
 
+      // --- Updated removeDependency ---
       function removeDependency(idx) {
         var removed = dependencies[idx];
         dependencies.splice(idx, 1);
 
         Promise.all([
-          t.set("board", "shared", "card-deps-" + currentCard.id, dependencies),
+          // Change "board" to "card" for current card
+          t.set("card", "shared", "card-deps-" + currentCard.id, dependencies),
+          // Change "board" to "card" for the linked card
           t
-            .get("board", "shared", "card-deps-" + removed.id)
+            .get(removed.id, "shared", "card-deps-" + removed.id)
             .then((arr) => (arr || []).filter((d) => d.id !== currentCard.id))
             .then((arr) =>
-              t.set("board", "shared", "card-deps-" + removed.id, arr),
+              t.set(removed.id, "shared", "card-deps-" + removed.id, arr),
             ),
         ]).then(renderDeps);
       }
 
+      // --- Updated addDependency ---
       function addDependency(dep) {
         dependencies.push(dep);
 
         Promise.all([
-          t.set("board", "shared", "card-deps-" + currentCard.id, dependencies),
-          t.get("board", "shared", "card-deps-" + dep.id).then((arr) => {
+          // Change "board" to "card" for current card
+          t.set("card", "shared", "card-deps-" + currentCard.id, dependencies),
+          // Change "board" to "card" for the linked card
+          // Note: We pass dep.id to t.get/set to target the other card specifically
+          t.get(dep.id, "shared", "card-deps-" + dep.id).then((arr) => {
             arr = arr || [];
             if (!arr.some((d) => d.id === currentCard.id)) {
               arr.push({
@@ -229,7 +236,7 @@
                 rel: INVERSE[dep.rel],
               });
             }
-            return t.set("board", "shared", "card-deps-" + dep.id, arr);
+            return t.set(dep.id, "shared", "card-deps-" + dep.id, arr);
           }),
         ]).then(renderDeps);
       }
@@ -264,7 +271,8 @@
       t.card("id", "name")
         .then((card) => {
           currentCard = card;
-          return t.get("board", "shared", "card-deps-" + card.id);
+          // Change "board" to "card"
+          return t.get("card", "shared", "card-deps-" + card.id);
         })
         .then((deps) => {
           dependencies = deps || [];
