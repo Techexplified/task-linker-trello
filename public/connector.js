@@ -44,19 +44,7 @@ TrelloPowerUp.initialize({
      always appears, and clicking it opens either the authorize popup or
      the dependency popup depending on auth state.
   ── */
-  // "card-back-section": function (t, options) {
-  //   return {
-  //     title: "Links",
-  //     icon: window.location.origin + "/icons/link.svg",
-  //     content: {
-  //       type: "iframe",
-  //       url: t.signUrl("./card-section.html"),
-  //       height: 60,
-  //     },
-  //   };
-  // },
-
-  "card-detail-badges": function (t, options) {
+  "card-back-section": function (t, options) {
     return {
       title: "Links",
       icon: window.location.origin + "/icons/link.svg",
