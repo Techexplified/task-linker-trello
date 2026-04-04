@@ -50,6 +50,7 @@ TrelloPowerUp.initialize({
         {
           title: "Task Linker",
           text: "Link Cards",
+          color: "green",
           callback: function (t) {
             if (!authorized) {
               return t.popup({
