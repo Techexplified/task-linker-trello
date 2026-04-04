@@ -16,72 +16,141 @@
         margin: 0;
         padding: 0;
       }
+
       body {
         font-family: "DM Sans", sans-serif;
         background: transparent;
-        padding: 6px 0 4px;
+        padding: 2px 0 4px;
       }
-      .btn-set {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-        padding: 7px 14px;
-        background: #3a8a6e;
-        color: #fff;
-        font-family: "DM Sans", sans-serif;
+
+      .empty {
         font-size: 13px;
-        font-weight: 600;
-        border: none;
-        border-radius: 6px;
+        color: #888;
+        padding: 6px 0;
+      }
+
+      .dep-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+
+      .dep-item {
+        display: flex;
+        align-items: center;
+        padding: 7px 10px;
+        border-radius: 5px;
+        font-size: 13px;
+        color: #c8c8c8;
+        gap: 6px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        transition: background 0.15s;
+      }
+
+      .dep-item:hover {
+        background: rgba(255, 255, 255, 0.07);
+      }
+
+      /* Relationship label — muted */
+      .rel-label {
+        color: #888;
+        flex-shrink: 0;
+        font-size: 13px;
+      }
+
+      /* Card name — highlighted like a link */
+      .card-name {
+        color: #7eb8f7;
+        font-weight: 500;
+        text-decoration: underline;
+        text-underline-offset: 2px;
         cursor: pointer;
-        transition:
-          background 0.18s,
-          transform 0.1s;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        flex: 1;
+        min-width: 0;
       }
-      .btn-set:hover {
-        background: #2e7059;
-      }
-      .btn-set:active {
-        transform: scale(0.97);
-      }
-      .btn-set svg {
-        width: 14px;
-        height: 14px;
-        fill: none;
-        stroke: #fff;
-        stroke-width: 2;
-        stroke-linecap: round;
+
+      /* Board name — shown if cross-board */
+      .board-name {
+        font-size: 11px;
+        color: #666;
+        flex-shrink: 0;
+        white-space: nowrap;
       }
     </style>
   </head>
   <body>
-    <button class="btn-set" id="setBtn">
-      <svg viewBox="0 0 24 24">
-        <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
-        <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
-      </svg>
-      Link Cards
-    </button>
+    <ul class="dep-list" id="depList">
+      <li class="empty">Loading…</li>
+    </ul>
 
     <script>
       var t = TrelloPowerUp.iframe();
 
-      document.getElementById("setBtn").addEventListener("click", function (e) {
-        t.get("member", "private", "task-linker-auth").then(function (token) {
-          if (!token) {
-            return t.popup({
-              title: "Task Linker",
-              url: "./authorize.html",
-              height: 320,
-              mouseEvent: e, // ← required so Trello knows where to anchor the popup
-            });
+      var DEPS_KEY = "task-linker-deps";
+
+      var REL_LABELS = {
+        blocks: "Blocks",
+        "blocked-by": "Blocked by",
+        "related-to": "Related to",
+        "child-of": "Child of",
+        "parent-to": "Parent to",
+        // legacy keys
+        "is-blocked-by": "Blocked by",
+        "is-related-to": "Related to",
+        "is-duplicate-to": "Duplicate of",
+        "is-child-to": "Child of",
+        "is-parent-to": "Parent to",
+      };
+
+      function escHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      t.card("id").then(function (card) {
+        return t.get("member", "shared", DEPS_KEY).then(function (map) {
+          var deps = map && map[card.id] ? map[card.id] : [];
+          var list = document.getElementById("depList");
+
+          if (!deps.length) {
+            list.innerHTML = '<li class="empty">No linked cards.</li>';
+            t.sizeTo("#depList").catch(function () {});
+            return;
           }
-          return t.popup({
-            title: "Link Cards",
-            url: "./dependency.html",
-            height: 420,
-            mouseEvent: e, // ← required
+
+          list.innerHTML = "";
+          deps.forEach(function (dep) {
+            var li = document.createElement("li");
+            li.className = "dep-item";
+
+            var relLabel = REL_LABELS[dep.rel] || dep.rel || "";
+            var boardLabel = dep.boardName
+              ? '<span class="board-name">' + escHtml(dep.boardName) + "</span>"
+              : "";
+
+            li.innerHTML =
+              '<span class="rel-label">' +
+              escHtml(relLabel) +
+              "</span>" +
+              '<span class="card-name" data-id="' +
+              escHtml(dep.id) +
+              '">' +
+              escHtml(dep.name) +
+              "</span>" +
+              boardLabel;
+
+            list.appendChild(li);
           });
+
+          // Resize iframe to fit content
+          t.sizeTo("#depList").catch(function () {});
         });
       });
     </script>
