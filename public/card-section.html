@@ -53,20 +53,17 @@
         background: rgba(255, 255, 255, 0.07);
       }
 
-      /* Relationship label — muted */
       .rel-label {
         color: #888;
         flex-shrink: 0;
         font-size: 13px;
       }
 
-      /* Card name — highlighted like a link */
       .card-name {
         color: #7eb8f7;
         font-weight: 500;
         text-decoration: underline;
         text-underline-offset: 2px;
-        cursor: pointer;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -74,12 +71,27 @@
         min-width: 0;
       }
 
-      /* Board name — shown if cross-board */
       .board-name {
         font-size: 11px;
         color: #666;
         flex-shrink: 0;
         white-space: nowrap;
+      }
+
+      .btn-delete {
+        background: none;
+        border: none;
+        color: #555;
+        cursor: pointer;
+        font-size: 15px;
+        line-height: 1;
+        padding: 0 2px;
+        flex-shrink: 0;
+        transition: color 0.15s;
+        margin-left: 4px;
+      }
+      .btn-delete:hover {
+        color: #f66;
       }
     </style>
   </head>
@@ -93,13 +105,26 @@
 
       var DEPS_KEY = "task-linker-deps";
 
+      var INVERSE = {
+        blocks: "blocked-by",
+        "blocked-by": "blocks",
+        "related-to": "related-to",
+        "child-of": "parent-to",
+        "parent-to": "child-of",
+        // legacy keys
+        "is-blocked-by": "blocks",
+        "is-related-to": "related-to",
+        "is-duplicate-to": "is-duplicate-to",
+        "is-child-to": "parent-to",
+        "is-parent-to": "child-of",
+      };
+
       var REL_LABELS = {
         blocks: "Blocks",
         "blocked-by": "Blocked by",
         "related-to": "Related to",
         "child-of": "Child of",
         "parent-to": "Parent to",
-        // legacy keys
         "is-blocked-by": "Blocked by",
         "is-related-to": "Related to",
         "is-duplicate-to": "Duplicate of",
@@ -114,45 +139,92 @@
           .replace(/>/g, "&gt;");
       }
 
-      t.card("id").then(function (card) {
-        return t.get("member", "shared", DEPS_KEY).then(function (map) {
-          var deps = map && map[card.id] ? map[card.id] : [];
-          var list = document.getElementById("depList");
+      var currentCardId = null;
+      var dependencies = [];
 
-          if (!deps.length) {
-            list.innerHTML = '<li class="empty">No linked cards.</li>';
-            t.sizeTo("#depList").catch(function () {});
-            return;
-          }
-
-          list.innerHTML = "";
-          deps.forEach(function (dep) {
-            var li = document.createElement("li");
-            li.className = "dep-item";
-
-            var relLabel = REL_LABELS[dep.rel] || dep.rel || "";
-            var boardLabel = dep.boardName
-              ? '<span class="board-name">' + escHtml(dep.boardName) + "</span>"
-              : "";
-
-            li.innerHTML =
-              '<span class="rel-label">' +
-              escHtml(relLabel) +
-              "</span>" +
-              '<span class="card-name" data-id="' +
-              escHtml(dep.id) +
-              '">' +
-              escHtml(dep.name) +
-              "</span>" +
-              boardLabel;
-
-            list.appendChild(li);
-          });
-
-          // Resize iframe to fit content
-          t.sizeTo("#depList").catch(function () {});
+      function getDepsMap() {
+        return t.get("member", "shared", DEPS_KEY).then(function (m) {
+          return m || {};
         });
-      });
+      }
+
+      function saveDepsMap(map) {
+        return t.set("member", "shared", DEPS_KEY, map);
+      }
+
+      function removeDep(idx) {
+        var removed = dependencies[idx];
+        dependencies.splice(idx, 1);
+
+        getDepsMap()
+          .then(function (map) {
+            // Update current card
+            map[currentCardId] = dependencies.slice();
+
+            // Remove inverse from the other card
+            var otherDeps = (map[removed.id] || []).filter(function (d) {
+              return d.id !== currentCardId;
+            });
+            map[removed.id] = otherDeps;
+
+            return saveDepsMap(map);
+          })
+          .then(render);
+      }
+
+      function render() {
+        var list = document.getElementById("depList");
+
+        if (!dependencies.length) {
+          list.innerHTML = '<li class="empty">No linked cards.</li>';
+          t.sizeTo("#depList").catch(function () {});
+          return;
+        }
+
+        list.innerHTML = "";
+        dependencies.forEach(function (dep, idx) {
+          var li = document.createElement("li");
+          li.className = "dep-item";
+
+          var relLabel = REL_LABELS[dep.rel] || dep.rel || "";
+          var boardHtml = dep.boardName
+            ? '<span class="board-name">' + escHtml(dep.boardName) + "</span>"
+            : "";
+
+          li.innerHTML =
+            '<span class="rel-label">' +
+            escHtml(relLabel) +
+            "</span>" +
+            '<span class="card-name">' +
+            escHtml(dep.name) +
+            "</span>" +
+            boardHtml +
+            '<button class="btn-delete" data-idx="' +
+            idx +
+            '" title="Remove link">✕</button>';
+
+          list.appendChild(li);
+        });
+
+        list.querySelectorAll(".btn-delete").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            removeDep(parseInt(btn.getAttribute("data-idx")));
+          });
+        });
+
+        t.sizeTo("#depList").catch(function () {});
+      }
+
+      // Init
+      t.card("id")
+        .then(function (card) {
+          currentCardId = card.id;
+          return getDepsMap();
+        })
+        .then(function (map) {
+          dependencies = (map[currentCardId] || []).slice();
+          render();
+        });
     </script>
   </body>
 </html>
