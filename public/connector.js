@@ -84,7 +84,7 @@ TrelloPowerUp.initialize({
           var height =
             deps.length > 0 ? Math.min(40 + deps.length * 38, 240) : 50;
           return {
-            title: "Dependencies",
+            title: "Links",
             icon: window.location.origin + "/icons/link.svg",
             content: {
               type: "iframe",
