@@ -104,6 +104,8 @@
       var t = TrelloPowerUp.iframe();
 
       var DEPS_KEY = "task-linker-deps";
+      var currentCardId = null;
+      var dependencies = [];
 
       var INVERSE = {
         blocks: "blocked-by",
@@ -154,22 +156,19 @@
 
       function removeDep(idx) {
         var removed = dependencies[idx];
-        dependencies.splice(idx, 1);
-
-        getDepsMap()
-          .then(function (map) {
-            // Update current card
-            map[currentCardId] = dependencies.slice();
-
-            // Remove inverse from the other card
-            var otherDeps = (map[removed.id] || []).filter(function (d) {
-              return d.id !== currentCardId;
-            });
-            map[removed.id] = otherDeps;
-
-            return saveDepsMap(map);
-          })
-          .then(render);
+        return t.get("member", "shared", DEPS_KEY).then(function (map) {
+          map = map || {};
+          // Update current card
+          dependencies.splice(idx, 1);
+          map[currentCardId] = dependencies;
+          // Remove inverse
+          var otherDeps = (map[removed.id] || []).filter(function (d) {
+            return d.id !== currentCardId;
+          });
+          map[removed.id] = otherDeps;
+          return t.set("member", "shared", DEPS_KEY, map);
+        });
+        // No need to call render() manually, t.render handles it!
       }
 
       function render() {
@@ -216,15 +215,18 @@
       }
 
       // Init
-      t.card("id")
-        .then(function (card) {
-          currentCardId = card.id;
-          return getDepsMap();
-        })
-        .then(function (map) {
-          dependencies = (map[currentCardId] || []).slice();
-          render();
-        });
+      t.render(function () {
+        return t
+          .card("id")
+          .then(function (card) {
+            currentCardId = card.id;
+            return t.get("member", "shared", DEPS_KEY);
+          })
+          .then(function (map) {
+            dependencies = map && map[currentCardId] ? map[currentCardId] : [];
+            render();
+          });
+      });
     </script>
   </body>
 </html>

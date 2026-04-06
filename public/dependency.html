@@ -324,11 +324,12 @@
       }
 
       /* ── Remove (bidirectional) ── */
+      /* ── Remove (bidirectional) ── */
       function removeDependency(idx) {
         var removed = dependencies[idx];
         dependencies.splice(idx, 1);
 
-        getDepsMap()
+        return getDepsMap()
           .then(function (map) {
             // Update current card
             map[currentCard.id] = dependencies.slice();
@@ -341,14 +342,17 @@
 
             return saveDepsMap(map);
           })
-          .then(renderDeps);
+          .then(function () {
+            renderDeps(); // Updates the popup UI
+            return t.render(); // Force refresh other open frames (the card section)
+          });
       }
 
       /* ── Add (bidirectional) ── */
       function addDependency(newDep) {
         dependencies.push(newDep);
 
-        getDepsMap()
+        return getDepsMap()
           .then(function (map) {
             // Save to current card
             map[currentCard.id] = dependencies.slice();
@@ -371,7 +375,10 @@
 
             return saveDepsMap(map);
           })
-          .then(renderDeps);
+          .then(function () {
+            renderDeps(); // Updates the popup UI
+            return t.render(); // Force refresh other open frames (the card section)
+          });
       }
 
       /* ── Load boards into selector ── */
