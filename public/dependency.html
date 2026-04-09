@@ -163,29 +163,32 @@
         cursor: not-allowed;
       }
 
-      .results-list {
+      #resultsList {
         list-style: none;
-        display: flex;
-        flex-direction: column;
-        gap: 3px;
-        max-height: 130px;
+        margin: 0;
+        padding: 0;
+        /* Fix: Set a maximum height and allow scrolling */
+        max-height: 200px;
         overflow-y: auto;
+        border: 1px solid #444;
+        border-top: none;
+        border-radius: 0 0 3px 3px;
+        background: #333;
       }
 
       .result-item {
-        padding: 8px 10px;
-        background: #383838;
-        border-radius: 5px;
-        font-size: 13px;
+        padding: 8px 12px;
         cursor: pointer;
-        transition: background 0.15s;
-        color: #d0d0d0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        border-bottom: 1px solid #444;
+        white-space: nowrap; /* Keep text on one line */
+        overflow: hidden; /* Hide overflow text */
+        text-overflow: ellipsis; /* Add "..." if text is too long */
+        color: #ddd;
       }
+
       .result-item:hover {
-        background: #464646;
+        background: #444;
+        color: #fff;
       }
 
       .hint {
@@ -421,6 +424,7 @@
       }
 
       /* ── Helper to display filtered or full list ── */
+      /* ── Updated displayMatches ── */
       function displayMatches(query) {
         var q = query.toLowerCase().trim();
         var list = document.getElementById("resultsList");
@@ -448,10 +452,12 @@
           return;
         }
 
-        matches.slice(0, 15).forEach(function (c) {
+        // We can now show all matches because the CSS will provide a scrollbar
+        matches.forEach(function (c) {
           var li = document.createElement("li");
           li.className = "result-item";
           li.textContent = c.name;
+          li.title = c.name; // Shows full name on hover
           li.addEventListener("click", function () {
             var rel = document.getElementById("relSelect").value;
             document.getElementById("searchBox").value = "";
