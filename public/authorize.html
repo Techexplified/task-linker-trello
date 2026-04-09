@@ -33,7 +33,7 @@
       .popup {
         background: #2d2d2d;
         width: 100%;
-        padding: 28px 16px 16px;
+        padding: 28px 24px 24px;
         display: flex;
         flex-direction: column;
         gap: 0;
@@ -47,10 +47,6 @@
         margin-bottom: 18px;
       }
 
-      .intro-text strong {
-        color: #fff;
-      }
-
       .divider {
         border: none;
         border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -62,57 +58,7 @@
         line-height: 1.65;
         color: #b8b8b8;
         text-align: center;
-        margin-bottom: 18px;
-      }
-
-      .info-text a {
-        color: #a0bfff;
-        text-decoration: underline;
-        text-underline-offset: 2px;
-      }
-
-      .newsletter-row {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
         margin-bottom: 22px;
-      }
-
-      .newsletter-row input[type="checkbox"] {
-        appearance: none;
-        -webkit-appearance: none;
-        width: 18px;
-        height: 18px;
-        border-radius: 4px;
-        background: #3a8a6e;
-        border: none;
-        cursor: pointer;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-      }
-
-      .newsletter-row input[type="checkbox"]:checked::after {
-        content: "";
-        position: absolute;
-        left: 4px;
-        top: 2px;
-        width: 6px;
-        height: 10px;
-        border: 2px solid #fff;
-        border-top: none;
-        border-left: none;
-        transform: rotate(45deg);
-      }
-
-      .newsletter-row label {
-        font-size: 13px;
-        color: #c8c8c8;
-        cursor: pointer;
-        user-select: none;
       }
 
       .btn-authorize {
@@ -134,14 +80,23 @@
         margin-bottom: 22px;
         letter-spacing: 0.01em;
       }
-
       .btn-authorize:hover {
         background: #4a5263;
         color: #fff;
       }
-
       .btn-authorize:active {
         transform: scale(0.98);
+      }
+      .btn-authorize:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .success {
+        text-align: center;
+        font-size: 14px;
+        color: #5cb85c;
+        margin-bottom: 16px;
       }
 
       .footer-links {
@@ -159,11 +114,9 @@
         text-underline-offset: 2px;
         transition: color 0.15s;
       }
-
       .footer-links a:hover {
         color: #a0bfff;
       }
-
       .footer-links .dot {
         color: #555;
         font-size: 10px;
@@ -177,15 +130,15 @@
         Power-Up, which stores the card relationship within the Trello itself.
       </p>
 
-      <!-- <hr class="divider" />
+      <hr class="divider" />
 
-      <p class="info-text"></p> -->
+      <div id="authorizeSection">
+        <button class="btn-authorize" id="authorizeBtn">
+          Click to authorize
+        </button>
+      </div>
 
-      <button class="btn-authorize" id="authorizeBtn">
-        Click to authorize
-      </button>
-
-      <!-- <div class="footer-links">
+      <div class="footer-links">
         <a href="https://your-app.vercel.app/faq" target="_blank">FAQ</a>
         <span class="dot">•</span>
         <a href="https://your-app.vercel.app/learn-more" target="_blank"
@@ -195,50 +148,80 @@
         <a href="https://your-app.vercel.app/privacy" target="_blank"
           >Privacy policy</a
         >
-      </div> -->
+      </div>
     </div>
 
     <script>
       var t = TrelloPowerUp.iframe();
 
+      var API_KEY = "YOUR_TRELLO_API_KEY"; // ← replace
+      var AUTH_KEY = "task-linker-auth";
+
+      var authScope = {
+        name: "Task Linker",
+        key: API_KEY,
+        expiration: "never",
+        scope: "read,write",
+      };
+
+      function showAuthorized() {
+        var section = document.getElementById("authorizeSection");
+        section.innerHTML = '<p class="success">✓ Authorized successfully</p>';
+        // Close the popup after a short delay
+        setTimeout(function () {
+          t.closePopup();
+        }, 800);
+      }
+
+      /*
+       * t.render() re-runs whenever storage changes.
+       * This means if the user completes auth in the popup window,
+       * the iframe re-renders and shows the success state immediately.
+       */
+      t.render(function () {
+        return t.get("member", "private", AUTH_KEY).then(function (token) {
+          if (token) {
+            showAuthorized();
+          }
+        });
+      });
+
       document
         .getElementById("authorizeBtn")
         .addEventListener("click", function () {
-          // Open the Trello OAuth authorize URL in a popup window
-          var authUrl =
+          var btn = document.getElementById("authorizeBtn");
+          btn.disabled = true;
+          btn.textContent = "Authorizing…";
+
+          /*
+           * t.authorize() is the OFFICIAL Trello Power-Up authorization method.
+           * It opens a popup window, handles the OAuth flow entirely within
+           * Trello's infrastructure, and returns the token directly — no
+           * callback page needed, no cross-origin navigation, no console errors.
+           */
+          t.authorize(
             "https://trello.com/1/authorize" +
-            "?name=" +
-            encodeURIComponent("Task Linker") +
-            "&key=" +
-            encodeURIComponent(
-              window.TRELLO_API_KEY || "cd814b7c7f01e5029860d3eed20daae5",
-            ) +
-            "&expiration=never" +
-            "&response_type=token" +
-            "&scope=read,write" +
-            "&callback_method=fragment" +
-            "&return_url=" +
-            encodeURIComponent(
-              "https://task-linker-trello.vercel.app/auth-callback.html",
-            );
-
-          var popup = window.open(
-            authUrl,
-            "trello-auth",
-            "width=560,height=600,left=200,top=100",
-          );
-
-          // Listen for the token coming back via postMessage
-          window.addEventListener("message", function onMsg(e) {
-            if (e.data && e.data.type === "task-linker-token") {
-              window.removeEventListener("message", onMsg);
-              t.set("member", "private", "task-linker-auth", e.data.token).then(
-                function () {
-                  t.closePopup();
-                },
-              );
-            }
-          });
+              "?name=" +
+              encodeURIComponent("Task Linker") +
+              "&key=" +
+              encodeURIComponent(API_KEY) +
+              "&expiration=never" +
+              "&response_type=token" +
+              "&scope=read%2Cwrite",
+            { height: 680, width: 580 },
+          )
+            .then(function (token) {
+              // Save the token — t.render() will fire automatically and show success
+              return t.set("member", "private", AUTH_KEY, token);
+            })
+            .then(function () {
+              showAuthorized();
+            })
+            .catch(function (err) {
+              btn.disabled = false;
+              btn.textContent = "Click to authorize";
+              console.error("Authorization failed:", err);
+            });
         });
     </script>
   </body>
