@@ -116,20 +116,25 @@ TrelloPowerUp.initialize({
   },
 
   /* ── Board Buttons ── */
+  /* ── Board Buttons ── */
   "board-buttons": function (t) {
-    return [
-      {
-        text: "Task Linker",
-        icon: window.location.origin + "/icons/link.svg",
-        callback: function (t) {
-          return t.popup({
-            title: "Task Linker",
-            url: "./authorize.html",
-            height: 320,
-          });
+    return isAuthorized(t).then(function (authorized) {
+      return [
+        {
+          text: "Task Linker",
+          icon: window.location.origin + "/icons/link.svg",
+          callback: function (t) {
+            return t.popup({
+              title: "Task Linker",
+              // If authorized, show a 'Success/Info' page or your dependency list
+              // If not, show the authorization page
+              url: authorized ? "./auth-success.html" : "./authorize.html",
+              height: authorized ? 200 : 320,
+            });
+          },
         },
-      },
-    ];
+      ];
+    });
   },
 
   "on-enable": function (t) {
