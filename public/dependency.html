@@ -218,7 +218,7 @@
     <select class="board-select" id="boardSelect">
       <option value="">Loading boards…</option>
     </select>
-    <!-- 
+
     <label class="field-label" for="searchBox">Search Card</label>
     <input
       class="search-box"
@@ -227,12 +227,12 @@
       placeholder="Type to search cards…"
       disabled
     />
-    <ul class="results-list" id="resultsList"></ul> -->
+    <ul class="results-list" id="resultsList"></ul>
 
     <script>
       var t = TrelloPowerUp.iframe();
 
-      var API_KEY = "cd814b7c7f01e5029860d3eed20daae5";
+      var API_KEY = "cd814b7c7f01e5029860d3eed20daae5"; // ← replace
       var API = "https://api.trello.com/1";
       var AUTH_KEY = "task-linker-auth";
       var DEPS_KEY = "task-linker-deps";
@@ -256,7 +256,7 @@
       var currentCard = null;
       var token = null;
       var dependencies = [];
-      var boardCards = [];
+      var boardCards = []; // cards on the currently selected board
       var boards = [];
 
       function escHtml(s) {
@@ -274,11 +274,11 @@
 
       function apiFetch(path, extra) {
         return fetch(apiUrl(path, extra)).then(function (r) {
-          if (!r.ok) throw new Error("API Error");
           return r.json();
         });
       }
 
+      /* ── Render linked cards ── */
       function renderDeps() {
         var list = document.getElementById("depList");
         if (!dependencies.length) {
@@ -312,6 +312,7 @@
         });
       }
 
+      /* ── Dependency map helpers ── */
       function getDepsMap() {
         return t.get("member", "shared", DEPS_KEY).then(function (m) {
           return m || {};
@@ -322,29 +323,41 @@
         return t.set("member", "shared", DEPS_KEY, map);
       }
 
+      /* ── Remove (bidirectional) ── */
+      /* ── Remove (bidirectional) ── */
       function removeDependency(idx) {
         var removed = dependencies[idx];
         dependencies.splice(idx, 1);
+
         return getDepsMap()
           .then(function (map) {
+            // Update current card
             map[currentCard.id] = dependencies.slice();
+
+            // Remove inverse from other card
             var otherDeps = (map[removed.id] || []).filter(function (d) {
               return d.id !== currentCard.id;
             });
             map[removed.id] = otherDeps;
+
             return saveDepsMap(map);
           })
           .then(function () {
-            renderDeps();
-            return t.render();
+            renderDeps(); // Updates the popup UI
+            return t.render(); // Force refresh other open frames (the card section)
           });
       }
 
+      /* ── Add (bidirectional) ── */
       function addDependency(newDep) {
         dependencies.push(newDep);
+
         return getDepsMap()
           .then(function (map) {
+            // Save to current card
             map[currentCard.id] = dependencies.slice();
+
+            // Save inverse to other card
             var otherDeps = map[newDep.id] || [];
             var alreadyLinked = otherDeps.some(function (d) {
               return d.id === currentCard.id;
@@ -359,14 +372,16 @@
               });
             }
             map[newDep.id] = otherDeps;
+
             return saveDepsMap(map);
           })
           .then(function () {
-            renderDeps();
-            return t.render();
+            renderDeps(); // Updates the pop-up UI
+            return t.render(); // Force refresh other open frames (the card section)
           });
       }
 
+      /* ── Load boards into selector ── */
       function loadBoards(currentBoardId) {
         return apiFetch(
           "/members/me/boards",
@@ -376,6 +391,7 @@
           var sel = document.getElementById("boardSelect");
           sel.innerHTML = "";
 
+          // Put current board first
           boards.sort(function (a, b) {
             if (a.id === currentBoardId) return -1;
             if (b.id === currentBoardId) return 1;
@@ -390,14 +406,17 @@
             sel.appendChild(opt);
           });
 
-          return loadBoardCards(sel.value);
+          // Auto-load cards for the first board
+          return loadBoardCards(boards[0].id);
         });
       }
 
+      /* ── Load cards for selected board ── */
       function loadBoardCards(boardId) {
         var searchBox = document.getElementById("searchBox");
         searchBox.disabled = true;
-        searchBox.placeholder = "Loading cards...";
+        searchBox.placeholder = "Loading cards…";
+        document.getElementById("resultsList").innerHTML = "";
 
         return apiFetch(
           "/boards/" + boardId + "/cards",
@@ -405,66 +424,11 @@
         ).then(function (cards) {
           boardCards = cards || [];
           searchBox.disabled = false;
-          searchBox.placeholder = "Type to search or click to browse...";
-          // If user is already focusing the box, show the cards immediately
-          if (document.activeElement === searchBox) {
-            displayMatches("");
-          }
+          searchBox.placeholder = "Type to search cards…";
         });
       }
 
-      function displayMatches(query) {
-        var q = (query || "").toLowerCase().trim();
-        var list = document.getElementById("resultsList");
-        var selectedBoardId = document.getElementById("boardSelect").value;
-
-        if (!selectedBoardId || boardCards.length === 0) return;
-
-        var selectedBoardName =
-          (
-            boards.find(function (b) {
-              return b.id === selectedBoardId;
-            }) || {}
-          ).name || "";
-
-        var matches = boardCards.filter(function (c) {
-          var isNotCurrent = c.id !== currentCard.id;
-          var isNotLinked = !dependencies.some(function (d) {
-            return d.id === c.id;
-          });
-          var matchesQuery = !q || c.name.toLowerCase().includes(q);
-          return isNotCurrent && isNotLinked && matchesQuery;
-        });
-
-        list.innerHTML = "";
-        if (!matches.length) {
-          list.innerHTML =
-            '<li class="hint">' +
-            (q ? "No cards found." : "No cards available.") +
-            "</li>";
-          return;
-        }
-
-        matches.forEach(function (c) {
-          var li = document.createElement("li");
-          li.className = "result-item";
-          li.textContent = c.name;
-          li.addEventListener("click", function () {
-            var rel = document.getElementById("relSelect").value;
-            document.getElementById("searchBox").value = "";
-            list.innerHTML = "";
-            addDependency({
-              id: c.id,
-              name: c.name,
-              boardId: selectedBoardId,
-              boardName: selectedBoardName,
-              rel: rel,
-            });
-          });
-          list.appendChild(li);
-        });
-      }
-
+      /* ── Board selector change ── */
       document
         .getElementById("boardSelect")
         .addEventListener("change", function () {
@@ -473,18 +437,61 @@
           document.getElementById("resultsList").innerHTML = "";
         });
 
+      /* ──- Live search -── */
       document
         .getElementById("searchBox")
         .addEventListener("input", function () {
-          displayMatches(this.value);
+          var q = this.value.toLowerCase().trim();
+          var list = document.getElementById("resultsList");
+          list.innerHTML = "";
+          if (!q) return;
+
+          var selectedBoardId = document.getElementById("boardSelect").value;
+          var selectedBoardName =
+            (
+              boards.find(function (b) {
+                return b.id === selectedBoardId;
+              }) || {}
+            ).name || "";
+
+          var matches = boardCards
+            .filter(function (c) {
+              return (
+                c.name.toLowerCase().includes(q) &&
+                c.id !== currentCard.id &&
+                !dependencies.some(function (d) {
+                  return d.id === c.id;
+                })
+              );
+            })
+            .slice(0, 7);
+
+          if (!matches.length) {
+            list.innerHTML = '<li class="hint">No cards found.</li>';
+            return;
+          }
+
+          matches.forEach(function (c) {
+            var li = document.createElement("li");
+            li.className = "result-item";
+            li.textContent = c.name;
+            li.addEventListener("click", function () {
+              var rel = document.getElementById("relSelect").value;
+              document.getElementById("searchBox").value = "";
+              list.innerHTML = "";
+              addDependency({
+                id: c.id,
+                name: c.name,
+                boardId: selectedBoardId,
+                boardName: selectedBoardName,
+                rel: rel,
+              });
+            });
+            list.appendChild(li);
+          });
         });
 
-      document
-        .getElementById("searchBox")
-        .addEventListener("focus", function () {
-          displayMatches(this.value);
-        });
-
+      /* ── Init ── */
       Promise.all([
         t.card("id", "name"),
         t.board("id", "name"),
@@ -511,9 +518,6 @@
           var map = results[0] || {};
           dependencies = map[currentCard.id] || [];
           renderDeps();
-        })
-        .catch(function (err) {
-          console.error("Initialization failed", err);
         });
     </script>
   </body>
