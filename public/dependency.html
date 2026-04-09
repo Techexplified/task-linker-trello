@@ -218,7 +218,7 @@
     <select class="board-select" id="boardSelect">
       <option value="">Loading boards…</option>
     </select>
-
+    <!-- 
     <label class="field-label" for="searchBox">Search Card</label>
     <input
       class="search-box"
@@ -227,7 +227,7 @@
       placeholder="Type to search cards…"
       disabled
     />
-    <ul class="results-list" id="resultsList"></ul>
+    <ul class="results-list" id="resultsList"></ul> -->
 
     <script>
       var t = TrelloPowerUp.iframe();
@@ -324,27 +324,22 @@
       }
 
       /* ── Remove (bidirectional) ── */
-      /* ── Remove (bidirectional) ── */
       function removeDependency(idx) {
         var removed = dependencies[idx];
         dependencies.splice(idx, 1);
 
         return getDepsMap()
           .then(function (map) {
-            // Update current card
             map[currentCard.id] = dependencies.slice();
-
-            // Remove inverse from other card
             var otherDeps = (map[removed.id] || []).filter(function (d) {
               return d.id !== currentCard.id;
             });
             map[removed.id] = otherDeps;
-
             return saveDepsMap(map);
           })
           .then(function () {
-            renderDeps(); // Updates the popup UI
-            return t.render(); // Force refresh other open frames (the card section)
+            renderDeps();
+            return t.render();
           });
       }
 
@@ -354,10 +349,7 @@
 
         return getDepsMap()
           .then(function (map) {
-            // Save to current card
             map[currentCard.id] = dependencies.slice();
-
-            // Save inverse to other card
             var otherDeps = map[newDep.id] || [];
             var alreadyLinked = otherDeps.some(function (d) {
               return d.id === currentCard.id;
@@ -372,12 +364,11 @@
               });
             }
             map[newDep.id] = otherDeps;
-
             return saveDepsMap(map);
           })
           .then(function () {
-            renderDeps(); // Updates the pop-up UI
-            return t.render(); // Force refresh other open frames (the card section)
+            renderDeps();
+            return t.render();
           });
       }
 
@@ -391,7 +382,6 @@
           var sel = document.getElementById("boardSelect");
           sel.innerHTML = "";
 
-          // Put current board first
           boards.sort(function (a, b) {
             if (a.id === currentBoardId) return -1;
             if (b.id === currentBoardId) return 1;
@@ -406,7 +396,6 @@
             sel.appendChild(opt);
           });
 
-          // Auto-load cards for the first board
           return loadBoardCards(boards[0].id);
         });
       }
@@ -424,71 +413,81 @@
         ).then(function (cards) {
           boardCards = cards || [];
           searchBox.disabled = false;
-          searchBox.placeholder = "Type to search cards…";
+          searchBox.placeholder = "Type to search or click to browse…";
         });
       }
 
-      /* ── Board selector change ── */
+      /* ── Logic to Display List (All or Filtered) ── */
+      function displayMatches(query) {
+        var q = query.toLowerCase().trim();
+        var list = document.getElementById("resultsList");
+        list.innerHTML = "";
+
+        var selectedBoardId = document.getElementById("boardSelect").value;
+        var selectedBoardName =
+          (
+            boards.find(function (b) {
+              return b.id === selectedBoardId;
+            }) || {}
+          ).name || "";
+
+        var matches = boardCards.filter(function (c) {
+          var isNotCurrent = c.id !== currentCard.id;
+          var isNotLinked = !dependencies.some(function (d) {
+            return d.id === c.id;
+          });
+          var matchesQuery = !q || c.name.toLowerCase().includes(q);
+          return isNotCurrent && isNotLinked && matchesQuery;
+        });
+
+        if (!matches.length) {
+          list.innerHTML =
+            '<li class="hint">' +
+            (q ? "No cards found." : "No available cards on this board.") +
+            "</li>";
+          return;
+        }
+
+        matches.forEach(function (c) {
+          var li = document.createElement("li");
+          li.className = "result-item";
+          li.textContent = c.name;
+          li.addEventListener("click", function () {
+            var rel = document.getElementById("relSelect").value;
+            document.getElementById("searchBox").value = "";
+            list.innerHTML = "";
+            addDependency({
+              id: c.id,
+              name: c.name,
+              boardId: selectedBoardId,
+              boardName: selectedBoardName,
+              rel: rel,
+            });
+          });
+          list.appendChild(li);
+        });
+      }
+
+      /* ── Event Listeners ── */
       document
         .getElementById("boardSelect")
         .addEventListener("change", function () {
-          loadBoardCards(this.value);
+          loadBoardCards(this.value).then(function () {
+            displayMatches(""); // Show all cards immediately for new board
+          });
           document.getElementById("searchBox").value = "";
-          document.getElementById("resultsList").innerHTML = "";
         });
 
-      /* ──- Live search -── */
       document
         .getElementById("searchBox")
         .addEventListener("input", function () {
-          var q = this.value.toLowerCase().trim();
-          var list = document.getElementById("resultsList");
-          list.innerHTML = "";
-          if (!q) return;
+          displayMatches(this.value);
+        });
 
-          var selectedBoardId = document.getElementById("boardSelect").value;
-          var selectedBoardName =
-            (
-              boards.find(function (b) {
-                return b.id === selectedBoardId;
-              }) || {}
-            ).name || "";
-
-          var matches = boardCards
-            .filter(function (c) {
-              return (
-                c.name.toLowerCase().includes(q) &&
-                c.id !== currentCard.id &&
-                !dependencies.some(function (d) {
-                  return d.id === c.id;
-                })
-              );
-            })
-            .slice(0, 7);
-
-          if (!matches.length) {
-            list.innerHTML = '<li class="hint">No cards found.</li>';
-            return;
-          }
-
-          matches.forEach(function (c) {
-            var li = document.createElement("li");
-            li.className = "result-item";
-            li.textContent = c.name;
-            li.addEventListener("click", function () {
-              var rel = document.getElementById("relSelect").value;
-              document.getElementById("searchBox").value = "";
-              list.innerHTML = "";
-              addDependency({
-                id: c.id,
-                name: c.name,
-                boardId: selectedBoardId,
-                boardName: selectedBoardName,
-                rel: rel,
-              });
-            });
-            list.appendChild(li);
-          });
+      document
+        .getElementById("searchBox")
+        .addEventListener("focus", function () {
+          displayMatches(this.value); // Show all cards when box is clicked
         });
 
       /* ── Init ── */
