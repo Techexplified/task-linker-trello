@@ -201,10 +201,21 @@
     <script>
       var t = TrelloPowerUp.iframe();
 
+      // Helper to update UI state
+      function showSuccess() {
+        var container = document.querySelector(".popup");
+        container.innerHTML = `
+      <div style="text-align: center; padding: 20px 0;">
+        <div style="font-size: 40px; margin-bottom: 10px;">✅</div>
+        <h2 style="font-size: 18px; color: #fff; margin-bottom: 8px;">Authorized!</h2>
+        <p style="font-size: 14px; color: #b8b8b8;">Linking your boards now...</p>
+      </div>
+    `;
+      }
+
       document
         .getElementById("authorizeBtn")
         .addEventListener("click", function () {
-          // Open the Trello OAuth authorize URL in a popup window
           var authUrl =
             "https://trello.com/1/authorize" +
             "?name=" +
@@ -222,19 +233,27 @@
               "https://task-linker-trello.vercel.app/auth-callback.html",
             );
 
-          var popup = window.open(
+          window.open(
             authUrl,
             "trello-auth",
             "width=560,height=600,left=200,top=100",
           );
 
-          // Listen for the token coming back via postMessage
+          // Listen for the token coming back
           window.addEventListener("message", function onMsg(e) {
             if (e.data && e.data.type === "task-linker-token") {
               window.removeEventListener("message", onMsg);
+
+              // 1. Immediately update the UI to show success
+              showSuccess();
+
+              // 2. Persist the token and close
               t.set("member", "private", "task-linker-auth", e.data.token).then(
                 function () {
-                  t.closePopup();
+                  // Optional: wait 1 second so they actually see the success message
+                  setTimeout(function () {
+                    t.closePopup();
+                  }, 1000);
                 },
               );
             }
