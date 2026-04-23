@@ -90,12 +90,31 @@
         transition: color 0.15s;
         margin-left: 4px;
       }
+
       .btn-delete:hover {
         color: #f66;
       }
+
+      .blocking-alert {
+        background: #622e2e;
+        border-left: 4px solid #ff4c4c;
+        padding: 10px;
+        margin-bottom: 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        display: none;
+        /* Hidden by default */
+      }
+
+      .blocking-alert strong {
+        color: #ff8e8e;
+      }
     </style>
   </head>
+
   <body>
+    <div id="blockingAlert" class="blocking-alert"></div>
+
     <ul class="dep-list" id="depList">
       <li class="empty">Loading…</li>
     </ul>
@@ -171,62 +190,112 @@
         // No need to call render() manually, t.render handles it!
       }
 
-      function render() {
-        var list = document.getElementById("depList");
+     function render() {
+      var list = document.getElementById("depList");
+      var alertBox = document.getElementById("blockingAlert");
 
-        if (!dependencies.length) {
-          list.innerHTML = '<li class="empty">No linked cards.</li>';
-          t.sizeTo("#depList").catch(function () {});
-          return;
-        }
-
-        list.innerHTML = "";
-        dependencies.forEach(function (dep, idx) {
-          var li = document.createElement("li");
-          li.className = "dep-item";
-
-          var relLabel = REL_LABELS[dep.rel] || dep.rel || "";
-          var boardHtml = dep.boardName
-            ? '<span class="board-name">' + escHtml(dep.boardName) + "</span>"
-            : "";
-
-          li.innerHTML =
-            '<span class="rel-label">' +
-            escHtml(relLabel) +
-            "</span>" +
-            '<span class="card-name">' +
-            escHtml(dep.name) +
-            "</span>" +
-            boardHtml +
-            '<button class="btn-delete" data-idx="' +
-            idx +
-            '" title="Remove link">✕</button>';
-
-          list.appendChild(li);
-        });
-
-        list.querySelectorAll(".btn-delete").forEach(function (btn) {
-          btn.addEventListener("click", function () {
-            removeDep(parseInt(btn.getAttribute("data-idx")));
-          });
-        });
-
-        t.sizeTo("#depList").catch(function () {});
+      if (!dependencies.length) {
+        list.innerHTML = '<li class="empty">No linked cards.</li>';
+        if(alertBox) alertBox.style.display = "none";
+        t.sizeTo("body").catch(() => {});
+        return;
       }
 
-      // Init
-      t.render(function () {
-        return t
-          .card("id")
-          .then(function (card) {
-            currentCardId = card.id;
-            return t.get("member", "shared", DEPS_KEY);
-          })
-          .then(function (map) {
-            dependencies = map && map[currentCardId] ? map[currentCardId] : [];
-            render();
-          });
+      // 1. Initial Render
+      list.innerHTML = "";
+      dependencies.forEach(function (dep, idx) {
+        var li = document.createElement("li");
+        li.className = "dep-item";
+        li.id = "dep-" + dep.id; // Give it an ID so we can strike it out later
+        var relLabel = REL_LABELS[dep.rel] || dep.rel || "";
+        var boardHtml = dep.boardName ? `<span class="board-name">${escHtml(dep.boardName)}</span>` : "";
+
+        li.innerHTML = `
+          <span class="rel-label">${escHtml(relLabel)}</span>
+          <span class="card-name" style="cursor:pointer; color:#7eb8f7; text-decoration:underline;">${escHtml(dep.name)}</span>
+          ${boardHtml}
+          <button class="btn-delete" data-idx="${idx}" title="Remove link">✕</button>
+        `;
+
+        li.querySelector(".card-name").addEventListener("click", () => t.showCard(dep.id));
+        list.appendChild(li);
       });
+
+      list.querySelectorAll(".btn-delete").forEach(btn => {
+        btn.addEventListener("click", function () { removeDep(parseInt(btn.getAttribute("data-idx"))); });
+      });
+
+      // 2. Alert Box Logic
+      const blockers = dependencies.filter(d => d.rel === "blocked-by" || d.rel === "is-blocked-by");
+      if (alertBox) {
+        if (blockers.length > 0) {
+          alertBox.style.display = "block";
+          alertBox.innerHTML = `<strong>BLOCKED:</strong> Waiting on '${escHtml(blockers[0].name)}'`;
+        } else {
+          alertBox.style.display = "none";
+        }
+      }
+
+      t.sizeTo("body").catch(() => {});
+
+      // 3. V2 SMART SYNC: Check if blockers are actually resolved
+      if (blockers.length > 0 && token) {
+        blockers.forEach(blocker => {
+          fetch(`https://api.trello.com/1/cards/${blocker.id}?key=${API_KEY}&token=${token}&fields=closed,idList`)
+            .then(res => res.json())
+            .then(cardData => {
+              if (!cardData) return;
+              
+              // Check if the card is archived
+              if (cardData.closed) {
+                markAsResolved(blocker.id, "Archived");
+              } else {
+                // Check if the list name implies "Done"
+                fetch(`https://api.trello.com/1/lists/${cardData.idList}?key=${API_KEY}&token=${token}&fields=name`)
+                  .then(res => res.json())
+                  .then(listData => {
+                    const lName = listData.name.toLowerCase();
+                    if (lName.includes("done") || lName.includes("complete")) {
+                      markAsResolved(blocker.id, "Done");
+                    }
+                  });
+              }
+            }).catch(e => console.log("Card might be deleted", e));
+        });
+      }
+    }
+
+    // Helper to visually strike-through resolved blockers
+    function markAsResolved(cardId, reason) {
+      const li = document.getElementById("dep-" + cardId);
+      if (li) {
+        const nameSpan = li.querySelector(".card-name");
+        nameSpan.style.textDecoration = "line-through";
+        nameSpan.style.color = "#888";
+        
+        const label = li.querySelector(".rel-label");
+        label.innerHTML = `<span style="color:#4caf50;">✓ RESOLVED (${reason})</span>`;
+        
+        // Hide the red alert box if the blocker is resolved
+        var alertBox = document.getElementById("blockingAlert");
+        if(alertBox) alertBox.style.display = "none";
+      }
+    }
+
+    // Updated Init to capture Token for API calls
+    t.render(function () {
+      return Promise.all([
+        t.card("id"),
+        t.get("member", "shared", DEPS_KEY),
+        t.get("member", "private", "task-linker-auth") // Get Token!
+      ]).then(function (res) {
+        currentCardId = res[0].id;
+        var map = res[1];
+        token = res[2]; // Save token for Smart Sync
+        dependencies = map && map[currentCardId] ? map[currentCardId] : [];
+        render();
+      });
+    });
     </script>
   </body>
 </html>

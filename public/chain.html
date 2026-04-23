@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Task Linker - Dependency Chain</title>
+    <script src="https://p.trellocdn.com/power-up.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+    <style>
+      body {
+        font-family: "DM Sans", sans-serif; background: #2d2d2d; color: #e8e8e8;
+        padding: 20px 30px; margin: 0; box-sizing: border-box;
+      }
+      h2 { font-size: 18px; color: #fff; margin-bottom: 5px; text-align: center; }
+      p { font-size: 13px; color: #aaa; margin-bottom: 20px; text-align: center; }
+      
+      /* Settings Bar */
+      .settings-bar {
+        display: flex; gap: 20px; background: #333; padding: 12px 20px;
+        border-radius: 8px; margin-bottom: 30px; font-size: 13px;
+        border: 1px solid #444; justify-content: center; flex-wrap: wrap;
+      }
+      .settings-bar label {
+        display: flex; align-items: center; gap: 8px; cursor: pointer; color: #dcdcdc; transition: color 0.2s;
+      }
+      .settings-bar label:hover { color: #fff; }
+      .settings-bar input[type="checkbox"] { cursor: pointer; accent-color: #6b8cff; width: 16px; height: 16px; }
+
+      #graph { display: flex; flex-direction: column; align-items: center; width: 100%; }
+      .level-row { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 15px; width: 100%; }
+
+      .chain-node {
+        background: #383838; border: 1px solid #555; border-radius: 8px; padding: 14px;
+        min-width: 220px; max-width: 280px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: transform 0.15s, border-color 0.15s; position: relative;
+      }
+      .chain-node:hover { transform: translateY(-2px); border-color: #6b8cff; }
+      .chain-node.current { background: rgba(255, 76, 76, 0.05); border: 1px solid #ff4c4c; }
+
+      .status { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+      .card-name { font-weight: 600; font-size: 14px; color: #fff; margin-bottom: 4px; word-wrap: break-word; }
+      .list-name { font-size: 11px; color: #888; }
+      .due-date { margin-top: 8px; font-size: 11px; font-weight: 500; color: #ff9f9f; background: rgba(255, 159, 159, 0.1); display: inline-block; padding: 2px 6px; border-radius: 4px; }
+      .link-count { margin-top: 8px; font-size: 11px; font-weight: 500; color: #a0bfff; background: rgba(160, 191, 255, 0.1); display: inline-block; padding: 2px 6px; border-radius: 4px; margin-right: 6px; }
+      
+      .arrow { font-size: 20px; color: #666; margin: 12px 0; }
+      .loading { color: #6b8cff; font-size: 14px; margin-top: 50px; }
+    </style>
+  </head>
+  <body>
+    <h2>Dependency Map</h2>
+    <p>Viewing the direct lineage for this card.</p>
+    
+    <div class="settings-bar">
+      <label><input type="checkbox" id="toggleMarkers" checked> Show Status Markers</label>
+      <label><input type="checkbox" id="toggleDetails" checked> Show Card Details (List/Due)</label>
+      <label><input type="checkbox" id="toggleLinks" checked> Show Link Counts</label>
+    </div>
+
+    <div id="graph"><div class="loading">Mapping network...</div></div>
+
+    <script>
+      var t = TrelloPowerUp.iframe();
+      var DEPS_KEY = "task-linker-deps";
+      var globalData = {};
+
+      function escHtml(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+      function getStatusTag(relType, isCurrent) {
+        if (isCurrent) return `<div class="status" style="color:#ff4c4c;">Current Card</div>`;
+        if (relType === 'Blocker') return `<div class="status" style="color:#ff8e8e;">Blocking Downstream</div>`;
+        if (relType === 'Blocked') return `<div class="status" style="color:#a0bfff;">Blocked by Upstream</div>`;
+        if (relType === 'Parent') return `<div class="status" style="color:#d4a0ff;">Parent Task</div>`;
+        if (relType === 'Child') return `<div class="status" style="color:#6be1ff;">Child Task</div>`;
+        if (relType === 'Related') return `<div class="status" style="color:#ccc;">Related Task</div>`;
+        return `<div class="status" style="color:#ccc;">Linked</div>`;
+      }
+
+      function renderGraph() {
+        if (!globalData.currentCardId) return;
+        
+        var graphDiv = document.getElementById("graph");
+        graphDiv.innerHTML = ""; 
+
+        const showMarkers = document.getElementById("toggleMarkers").checked;
+        const showDetails = document.getElementById("toggleDetails").checked;
+        const showLinks = document.getElementById("toggleLinks").checked;
+
+        let levels = { 0: [{ id: globalData.currentCardId, relType: 'Current' }] };
+        let visitedUp = new Set([globalData.currentCardId]);
+        let visitedDown = new Set([globalData.currentCardId]);
+
+        // 1. Traverse UP
+        let upQueue = [{ id: globalData.currentCardId, level: 0 }];
+        while (upQueue.length > 0) {
+            let curr = upQueue.shift();
+            let deps = globalData.map[curr.id] || [];
+            deps.forEach(dep => {
+                if (['blocked-by', 'is-blocked-by', 'child-of', 'is-child-to'].includes(dep.rel)) {
+                    if (!visitedUp.has(dep.id)) {
+                        visitedUp.add(dep.id);
+                        let nextLevel = curr.level - 1;
+                        if (!levels[nextLevel]) levels[nextLevel] = [];
+                        let relType = dep.rel.includes('block') ? 'Blocker' : 'Parent';
+                        levels[nextLevel].push({ id: dep.id, relType: relType });
+                        upQueue.push({ id: dep.id, level: nextLevel });
+                    }
+                }
+            });
+        }
+
+        // 2. Traverse DOWN
+        let downQueue = [{ id: globalData.currentCardId, level: 0 }];
+        while (downQueue.length > 0) {
+            let curr = downQueue.shift();
+            let deps = globalData.map[curr.id] || [];
+            deps.forEach(dep => {
+                if (['blocks', 'parent-to', 'is-parent-to'].includes(dep.rel)) {
+                    if (!visitedDown.has(dep.id)) {
+                        visitedDown.add(dep.id);
+                        let nextLevel = curr.level + 1;
+                        if (!levels[nextLevel]) levels[nextLevel] = [];
+                        let relType = dep.rel.includes('block') ? 'Blocked' : 'Child';
+                        levels[nextLevel].push({ id: dep.id, relType: relType });
+                        downQueue.push({ id: dep.id, level: nextLevel });
+                    }
+                }
+            });
+        }
+
+        // 3. Direct Relatives
+        let directDeps = globalData.map[globalData.currentCardId] || [];
+        directDeps.forEach(dep => {
+            if (['related-to', 'is-related-to', 'is-duplicate-to'].includes(dep.rel)) {
+                levels[0].push({ id: dep.id, relType: 'Related' });
+            }
+        });
+
+        // --- RENDER HTML ---
+        let sortedLevels = Object.keys(levels).map(Number).sort((a, b) => a - b);
+
+        sortedLevels.forEach((levelIndex, arrayIndex) => {
+            const row = document.createElement("div");
+            row.className = "level-row";
+
+            levels[levelIndex].forEach(nodeData => {
+                const id = nodeData.id;
+                const isCurrent = id === globalData.currentCardId;
+                const node = document.createElement("div");
+                node.className = "chain-node" + (isCurrent ? " current" : "");
+
+                let name = "Unknown Card"; let listStr = "External Board"; let dueStr = "";
+                
+                if (globalData.cardDataMap[id]) {
+                    name = globalData.cardDataMap[id].name;
+                    listStr = globalData.cardDataMap[id].listName;
+                    if (globalData.cardDataMap[id].due) {
+                        let d = new Date(globalData.cardDataMap[id].due);
+                        dueStr = `<div class="due-date">📅 Due: ${d.toLocaleDateString()}</div>`;
+                    }
+                } else {
+                    for (let k in globalData.map) {
+                        let found = globalData.map[k].find(x => x.id === id);
+                        if (found) { name = found.name; break; }
+                    }
+                }
+
+                // Conditional Renders based on Checkboxes
+                let statusHtml = showMarkers ? getStatusTag(nodeData.relType, isCurrent) : "";
+                let detailsHtml = showDetails ? `<div class="list-name">in ${escHtml(listStr)}</div>${dueStr}` : "";
+                
+                let linkCountHtml = "";
+                if (showLinks) {
+                  let totalLinks = (globalData.map[id] || []).length;
+                  if (totalLinks > 0) {
+                    linkCountHtml = `<div class="link-count">🔗 ${totalLinks} link${totalLinks !== 1 ? 's' : ''}</div>`;
+                  }
+                }
+
+                node.innerHTML = `
+                    ${statusHtml}
+                    <div class="card-name">${escHtml(name)}</div>
+                    ${detailsHtml}
+                    <div style="margin-top: 4px;">${linkCountHtml}</div>
+                `;
+                
+                node.style.cursor = "pointer";
+                node.addEventListener("click", () => t.showCard(id));
+                row.appendChild(node);
+            });
+
+            graphDiv.appendChild(row);
+
+            if (arrayIndex < sortedLevels.length - 1) {
+                const arrow = document.createElement("div");
+                arrow.className = "arrow"; arrow.innerHTML = "↓";
+                graphDiv.appendChild(arrow);
+            }
+        });
+        
+        t.sizeTo("body");
+      }
+
+      // Add Checkbox Listeners
+      document.getElementById("toggleMarkers").addEventListener("change", renderGraph);
+      document.getElementById("toggleDetails").addEventListener("change", renderGraph);
+      document.getElementById("toggleLinks").addEventListener("change", renderGraph);
+
+      // Data Fetch & Initialization
+      if (t.getContext().card) {
+        Promise.all([
+          t.get("member", "shared", DEPS_KEY),
+          t.cards('id', 'name', 'idList', 'due'),
+          t.lists('id', 'name'),
+          t.card('id') 
+        ]).then(function(results) {
+          var boardLists = results[2] || [];
+          var listMap = {};
+          boardLists.forEach(l => listMap[l.id] = l.name);
+
+          var cardDataMap = {};
+          (results[1] || []).forEach(c => {
+            cardDataMap[c.id] = { name: c.name, listName: listMap[c.idList] || "Unknown List", due: c.due };
+          });
+
+          // Store in global state
+          globalData = {
+            map: results[0] || {},
+            cardDataMap: cardDataMap,
+            currentCardId: results[3].id
+          };
+
+          renderGraph();
+        }).catch(err => {
+            document.getElementById("graph").innerHTML = "<p>Please open this map from inside a specific card.</p>";
+        });
+      } else {
+         document.getElementById("graph").innerHTML = "<p>To view a dependency chain, please open a specific card and click 'View Chain'.</p>";
+         document.querySelector(".settings-bar").style.display = "none";
+      }
+    </script>
+  </body>
+</html>

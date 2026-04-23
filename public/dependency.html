@@ -10,193 +10,51 @@
       rel="stylesheet"
     />
     <style>
-      *,
-      *::before,
-      *::after {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
-
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       body {
         font-family: "DM Sans", sans-serif;
         background: #2d2d2d;
         color: #e8e8e8;
         padding: 10px 10px 10px;
+        scrollbar-width: thin;
+        scrollbar-color: #555 #2d2d2d;
       }
-
-      .section-title {
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: #777;
-        margin-bottom: 10px;
+      body::-webkit-scrollbar { width: 8px; }
+      body::-webkit-scrollbar-track { background: #2d2d2d; }
+      body::-webkit-scrollbar-thumb { background-color: #555; border-radius: 4px; }
+      .section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #777; margin-bottom: 10px; }
+      .dep-list { list-style: none; display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+      .dep-item { display: flex; align-items: center; justify-content: space-between; background: #383838; border-radius: 6px; padding: 8px 10px; gap: 8px; }
+      .dep-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+      .dep-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; color: #7eb8f7; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+      .dep-meta { font-size: 11px; color: #888; }
+      .dep-item button { background: none; border: none; color: #666; cursor: pointer; font-size: 15px; line-height: 1; padding: 2px 4px; flex-shrink: 0; transition: color 0.15s; }
+      .dep-item button:hover { color: #f66; }
+      .empty { font-size: 13px; color: #555; padding: 4px 0 14px; }
+      .divider { border: none; border-top: 1px solid rgba(255, 255, 255, 0.07); margin: 4px 0 16px; }
+      .field-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: #777; margin-bottom: 6px; display: block; }
+      .rel-select, .board-select, .search-box {
+        width: 100%; padding: 9px 12px; background: #1e1e1e; border: 1px solid #444; border-radius: 6px;
+        color: #e0e0e0; font-family: "DM Sans", sans-serif; font-size: 13px; outline: none; margin-bottom: 12px; transition: border-color 0.15s;
       }
-
-      .dep-list {
-        list-style: none;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        margin-bottom: 16px;
-      }
-
-      .dep-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        background: #383838;
-        border-radius: 6px;
-        padding: 8px 10px;
-        gap: 8px;
-      }
-
-      .dep-info {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        flex: 1;
-        min-width: 0;
-      }
-
-      .dep-name {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        font-size: 13px;
-        color: #d8d8d8;
-      }
-
-      .dep-meta {
-        font-size: 11px;
-        color: #888;
-      }
-
-      .dep-item button {
-        background: none;
-        border: none;
-        color: #666;
-        cursor: pointer;
-        font-size: 15px;
-        line-height: 1;
-        padding: 2px 4px;
-        flex-shrink: 0;
-        transition: color 0.15s;
-      }
-      .dep-item button:hover {
-        color: #f66;
-      }
-
-      .empty {
-        font-size: 13px;
-        color: #555;
-        padding: 4px 0 14px;
-      }
-
-      .divider {
-        border: none;
-        border-top: 1px solid rgba(255, 255, 255, 0.07);
-        margin: 4px 0 16px;
-      }
-
-      .field-label {
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-        color: #777;
-        margin-bottom: 6px;
-        display: block;
-      }
-
-      .rel-select,
-      .board-select {
-        width: 100%;
-        padding: 9px 12px;
-        background: #1e1e1e;
-        border: 1px solid #444;
-        border-radius: 6px;
-        color: #e0e0e0;
-        font-family: "DM Sans", sans-serif;
-        font-size: 13px;
-        outline: none;
-        margin-bottom: 12px;
-        appearance: none;
-        -webkit-appearance: none;
+      .rel-select, .board-select {
+        appearance: none; -webkit-appearance: none; cursor: pointer;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 12px center;
-        cursor: pointer;
-        transition: border-color 0.15s;
+        background-repeat: no-repeat; background-position: right 12px center;
       }
-      .rel-select:focus,
-      .board-select:focus {
-        border-color: #6b8cff;
-      }
-      .rel-select option,
-      .board-select option {
-        background: #1e1e1e;
-      }
+      .rel-select:focus, .board-select:focus, .search-box:focus { border-color: #6b8cff; }
+      .rel-select option, .board-select option { background: #1e1e1e; }
+      .search-box { margin-bottom: 8px; }
+      .search-box::placeholder { color: #555; }
+      .search-box:disabled { opacity: 0.4; cursor: not-allowed; }
+      
+      /* Target Card Due Date Input specific styling */
+      input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; }
 
-      .search-box {
-        width: 100%;
-        padding: 9px 12px;
-        background: #1e1e1e;
-        border: 1px solid #444;
-        border-radius: 6px;
-        color: #e0e0e0;
-        font-family: "DM Sans", sans-serif;
-        font-size: 13px;
-        outline: none;
-        margin-bottom: 8px;
-        transition: border-color 0.15s;
-      }
-      .search-box:focus {
-        border-color: #6b8cff;
-      }
-      .search-box::placeholder {
-        color: #555;
-      }
-      .search-box:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-      }
-
-      #resultsList {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        /* Fix: Set a maximum height and allow scrolling */
-        max-height: 200px;
-        overflow-y: auto;
-        border: 1px solid #444;
-        border-top: none;
-        border-radius: 0 0 3px 3px;
-        background: #333;
-      }
-
-      .result-item {
-        padding: 8px 12px;
-        cursor: pointer;
-        font-size: 13px;
-        border-bottom: 1px solid #444;
-        white-space: nowrap; /* Keep text on one line */
-        overflow: hidden; /* Hide overflow text */
-        text-overflow: ellipsis; /* Add "..." if text is too long */
-        color: #ddd;
-      }
-
-      .result-item:hover {
-        background: #444;
-        color: #fff;
-      }
-
-      .hint {
-        font-size: 12px;
-        color: #555;
-        padding: 6px 2px;
-      }
+      #resultsList { list-style: none; margin: 0; padding: 0; max-height: 180px; overflow-y: auto; border: 1px solid #444; border-top: none; border-radius: 0 0 6px 6px; background: #333; }
+      .result-item { padding: 8px 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #444; color: #ddd; }
+      .result-item:hover { background: #444; color: #fff; }
+      .hint { font-size: 12px; color: #555; padding: 6px 12px; }
     </style>
   </head>
   <body>
@@ -223,20 +81,17 @@
       <option value="">Loading boards…</option>
     </select>
 
+    <label class="field-label" for="dueDateInput">Target Card Due Date (Optional)</label>
+    <input class="search-box" id="dueDateInput" type="datetime-local" title="Syncs with Trello's Native Due Date" />
+
     <label class="field-label" for="searchBox">Search Card</label>
-    <input
-      class="search-box"
-      id="searchBox"
-      type="text"
-      placeholder="Type to search cards…"
-      disabled
-    />
+    <input class="search-box" id="searchBox" type="text" placeholder="Type to search cards…" disabled />
     <ul class="results-list" id="resultsList"></ul>
 
     <script>
       var t = TrelloPowerUp.iframe();
 
-      var API_KEY = "cd814b7c7f01e5029860d3eed20daae5"; // ← replace
+      var API_KEY = "cd814b7c7f01e5029860d3eed20daae5"; 
       var API = "https://api.trello.com/1";
       var AUTH_KEY = "task-linker-auth";
       var DEPS_KEY = "task-linker-deps";
@@ -260,24 +115,18 @@
       var currentCard = null;
       var token = null;
       var dependencies = [];
-      var boardCards = []; // cards on the currently selected board
+      var boardCards = []; 
       var boards = [];
 
       function escHtml(s) {
-        return String(s)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
+        return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       }
 
-      function apiUrl(path, extra) {
+      // Updated to accept method type (GET/PUT)
+      function apiFetch(path, extra, method) {
         var q = "key=" + API_KEY + "&token=" + token;
         if (extra) q += "&" + extra;
-        return API + path + "?" + q;
-      }
-
-      function apiFetch(path, extra) {
-        return fetch(apiUrl(path, extra)).then(function (r) {
+        return fetch(API + path + "?" + q, { method: method || 'GET' }).then(function (r) {
           return r.json();
         });
       }
@@ -294,156 +143,108 @@
           var li = document.createElement("li");
           li.className = "dep-item";
           var boardLabel = dep.boardName ? " · " + escHtml(dep.boardName) : "";
+          
           li.innerHTML =
             '<div class="dep-info">' +
-            '<span class="dep-name">' +
-            escHtml(dep.name) +
-            "</span>" +
-            '<span class="dep-meta">' +
-            escHtml(REL_LABELS[dep.rel] || dep.rel) +
-            boardLabel +
-            "</span>" +
+            '<span class="dep-name" title="Click to open card">' + escHtml(dep.name) + "</span>" +
+            '<span class="dep-meta">' + escHtml(REL_LABELS[dep.rel] || dep.rel) + boardLabel + "</span>" +
             "</div>" +
-            '<button data-idx="' +
-            idx +
-            '" title="Remove">✕</button>';
+            '<button data-idx="' + idx + '" title="Remove">✕</button>';
+            
+          li.querySelector(".dep-name").addEventListener("click", function() { t.showCard(dep.id); });
           list.appendChild(li);
         });
+        
         list.querySelectorAll("button").forEach(function (btn) {
-          btn.addEventListener("click", function () {
-            removeDependency(parseInt(btn.getAttribute("data-idx")));
-          });
+          btn.addEventListener("click", function () { removeDependency(parseInt(btn.getAttribute("data-idx"))); });
         });
       }
 
-      /* ── Dependency map helpers ── */
-      function getDepsMap() {
-        return t.get("member", "shared", DEPS_KEY).then(function (m) {
-          return m || {};
-        });
-      }
-
-      function saveDepsMap(map) {
-        return t.set("member", "shared", DEPS_KEY, map);
-      }
+      function getDepsMap() { return t.get("member", "shared", DEPS_KEY).then(function (m) { return m || {}; }); }
+      function saveDepsMap(map) { return t.set("member", "shared", DEPS_KEY, map); }
 
       /* ── Remove (bidirectional) ── */
       function removeDependency(idx) {
         var removed = dependencies[idx];
         dependencies.splice(idx, 1);
-
-        return getDepsMap()
-          .then(function (map) {
+        return getDepsMap().then(function (map) {
             map[currentCard.id] = dependencies.slice();
-            var otherDeps = (map[removed.id] || []).filter(function (d) {
-              return d.id !== currentCard.id;
-            });
+            var otherDeps = (map[removed.id] || []).filter(function (d) { return d.id !== currentCard.id; });
             map[removed.id] = otherDeps;
             return saveDepsMap(map);
-          })
-          .then(function () {
-            renderDeps();
-            return t.render();
-          });
+          }).then(function () { renderDeps(); return t.render(); });
       }
 
       /* ── Add (bidirectional) ── */
       function addDependency(newDep) {
         dependencies.push(newDep);
-
-        return getDepsMap()
-          .then(function (map) {
+        return getDepsMap().then(function (map) {
             map[currentCard.id] = dependencies.slice();
             var otherDeps = map[newDep.id] || [];
-            var alreadyLinked = otherDeps.some(function (d) {
-              return d.id === currentCard.id;
-            });
+            var alreadyLinked = otherDeps.some(function (d) { return d.id === currentCard.id; });
             if (!alreadyLinked) {
               otherDeps.push({
-                id: currentCard.id,
-                name: currentCard.name,
-                boardId: currentCard.boardId,
-                boardName: currentCard.boardName,
+                id: currentCard.id, name: currentCard.name, boardId: currentCard.boardId, boardName: currentCard.boardName,
                 rel: INVERSE[newDep.rel] || newDep.rel,
               });
             }
             map[newDep.id] = otherDeps;
             return saveDepsMap(map);
-          })
-          .then(function () {
-            renderDeps();
-            return t.render();
-          });
+          }).then(function () { renderDeps(); return t.render(); });
       }
 
-      /* ── Load boards into selector ── */
       function loadBoards(currentBoardId) {
-        return apiFetch(
-          "/members/me/boards",
-          "fields=id,name&filter=open",
-        ).then(function (data) {
+        return apiFetch("/members/me/boards", "fields=id,name&filter=open").then(function (data) {
           boards = data || [];
           var sel = document.getElementById("boardSelect");
           sel.innerHTML = "";
-
           boards.sort(function (a, b) {
             if (a.id === currentBoardId) return -1;
             if (b.id === currentBoardId) return 1;
             return a.name.localeCompare(b.name);
           });
-
           boards.forEach(function (b) {
             var opt = document.createElement("option");
-            opt.value = b.id;
-            opt.textContent =
-              b.id === currentBoardId ? b.name + " (this board)" : b.name;
+            opt.value = b.id; opt.textContent = b.id === currentBoardId ? b.name + " (this board)" : b.name;
             sel.appendChild(opt);
           });
-
-          // Fixed: Load cards for the specifically selected current board
           return loadBoardCards(sel.value);
         });
       }
 
-      /* ── Load cards for selected board ── */
       function loadBoardCards(boardId) {
         var searchBox = document.getElementById("searchBox");
-        searchBox.disabled = true;
-        searchBox.placeholder = "Loading cards…";
+        searchBox.disabled = true; searchBox.placeholder = "Loading cards…";
         document.getElementById("resultsList").innerHTML = "";
 
-        return apiFetch(
-          "/boards/" + boardId + "/cards",
-          "fields=id,name&filter=open",
-        ).then(function (cards) {
-          boardCards = cards || [];
-          searchBox.disabled = false;
-          searchBox.placeholder = "Type to search or click to browse…";
-          // Trigger display if user is already looking at the list
-          displayMatches(searchBox.value);
+        return Promise.all([
+          apiFetch("/boards/" + boardId + "/cards", "fields=id,name,idList&filter=open"),
+          apiFetch("/boards/" + boardId + "/lists", "fields=id,name")
+        ]).then(function (results) {
+            var cards = results[0] || [];
+            var lists = results[1] || [];
+            var listMap = {};
+            lists.forEach(function(l) { listMap[l.id] = l.name; });
+
+            boardCards = cards.map(function(c) {
+              return { id: c.id, name: c.name, listName: listMap[c.idList] || "Unknown List" };
+            });
+
+            searchBox.disabled = false; searchBox.placeholder = "Type to search or click to browse…";
+            displayMatches(searchBox.value);
         });
       }
 
-      /* ── Helper to display filtered or full list ── */
-      /* ── Updated displayMatches ── */
       function displayMatches(query) {
         var q = query.toLowerCase().trim();
         var list = document.getElementById("resultsList");
         list.innerHTML = "";
-
         var selectedBoardId = document.getElementById("boardSelect").value;
-        var selectedBoardName =
-          (
-            boards.find(function (b) {
-              return b.id === selectedBoardId;
-            }) || {}
-          ).name || "";
+        var selectedBoardName = (boards.find(function (b) { return b.id === selectedBoardId; }) || {}).name || "";
 
         var matches = boardCards.filter(function (c) {
           var isNotCurrent = c.id !== currentCard.id;
-          var isNotLinked = !dependencies.some(function (d) {
-            return d.id === c.id;
-          });
+          var isNotLinked = !dependencies.some(function (d) { return d.id === c.id; });
           var matchesQuery = !q || c.name.toLowerCase().includes(q);
           return isNotCurrent && isNotLinked && matchesQuery;
         });
@@ -453,70 +254,49 @@
           return;
         }
 
-        // We can now show all matches because the CSS will provide a scrollbar
         matches.forEach(function (c) {
           var li = document.createElement("li");
           li.className = "result-item";
-          li.textContent = c.name;
-          li.title = c.name; // Shows full name on hover
+          li.innerHTML = `
+            <div style="display:flex; flex-direction:column; gap:2px;">
+              <span style="font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escHtml(c.name)}</span>
+              <span style="font-size:10px; color:#888;">in ${escHtml(c.listName)}</span>
+            </div>
+          `;
+          
+          li.title = c.name + " (in " + c.listName + ")"; 
           li.addEventListener("click", function () {
             var rel = document.getElementById("relSelect").value;
+            var dueDateStr = document.getElementById("dueDateInput").value;
+
+            // Optional Due Date Update Logic via PUT Request
+            if (dueDateStr) {
+              var isoDate = new Date(dueDateStr).toISOString();
+              apiFetch('/cards/' + c.id, 'due=' + encodeURIComponent(isoDate), 'PUT')
+                .catch(e => console.error("Could not update due date", e));
+            }
+
             document.getElementById("searchBox").value = "";
+            document.getElementById("dueDateInput").value = ""; // Reset
             list.innerHTML = "";
-            addDependency({
-              id: c.id,
-              name: c.name,
-              boardId: selectedBoardId,
-              boardName: selectedBoardName,
-              rel: rel,
-            });
+            addDependency({ id: c.id, name: c.name, boardId: selectedBoardId, boardName: selectedBoardName, rel: rel });
           });
           list.appendChild(li);
         });
       }
 
-      /* ── Event Listeners ── */
-      document
-        .getElementById("boardSelect")
-        .addEventListener("change", function () {
-          loadBoardCards(this.value);
-          document.getElementById("searchBox").value = "";
-        });
-
-      document
-        .getElementById("searchBox")
-        .addEventListener("input", function () {
-          displayMatches(this.value);
-        });
-
-      document
-        .getElementById("searchBox")
-        .addEventListener("focus", function () {
-          displayMatches(this.value);
-        });
+      document.getElementById("boardSelect").addEventListener("change", function () { loadBoardCards(this.value); document.getElementById("searchBox").value = ""; });
+      document.getElementById("searchBox").addEventListener("input", function () { displayMatches(this.value); });
+      document.getElementById("searchBox").addEventListener("focus", function () { displayMatches(this.value); });
 
       /* ── Init ── */
-      Promise.all([
-        t.card("id", "name"),
-        t.board("id", "name"),
-        t.get("member", "private", AUTH_KEY),
-      ])
+      Promise.all([ t.card("id", "name"), t.board("id", "name"), t.get("member", "private", AUTH_KEY) ])
         .then(function (results) {
           var card = results[0];
           var board = results[1];
           token = results[2];
-
-          currentCard = {
-            id: card.id,
-            name: card.name,
-            boardId: board.id,
-            boardName: board.name,
-          };
-
-          return Promise.all([
-            t.get("member", "shared", DEPS_KEY),
-            loadBoards(board.id),
-          ]);
+          currentCard = { id: card.id, name: card.name, boardId: board.id, boardName: board.name };
+          return Promise.all([ t.get("member", "shared", DEPS_KEY), loadBoards(board.id) ]);
         })
         .then(function (results) {
           var map = results[0] || {};
