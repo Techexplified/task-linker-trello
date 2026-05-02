@@ -146,6 +146,8 @@ TrelloPowerUp.initialize({
     });
   },
 
+  
+
   /* ── Card back section — shows the linked cards list ── */
   'card-back-section': function(t) {
     return Promise.all([
